@@ -1,4 +1,4 @@
-# Hackday Dungeon
+# Hackday Dungeon (Visualiser)
 
 Welcome to the Hackday Dungeon! Whether you're here as a proud programmer keen
 on proving your coding skills in a contest of wits, or a newbie developer
