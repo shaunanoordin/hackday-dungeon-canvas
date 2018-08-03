@@ -1,0 +1,57 @@
+* {
+  box-sizing: border-box;
+}
+:root {
+  font-family: "Lucida Console", monospace;
+  font-size: 16px;
+  background: #333 url("../assets/simple-bg.png");
+  color: #333;
+}
+html,
+body {
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+}
+a {
+  color: #c33;
+  text-decoration: none;
+}
+a:hover {
+  color: #f33;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+table td,
+table th {
+  border: 1px solid #333;
+}
+#app {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  max-width: 50em;
+  margin: 0 auto;
+  background: #fff;
+}
+#app > header,
+#app > footer {
+  flex: 0 0 auto;
+  padding: 1em;
+  background: #c33;
+  color: #fff;
+}
+#app > header h1,
+#app > footer h1 {
+  margin: 0;
+  padding: 0;
+}
+#app > main {
+  flex: 1 1 auto;
+  padding: 1em;
+  background: #fff;
+}

@@ -1,0 +1,28 @@
+{
+  "name": "hackday-dungeon",
+  "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shaunanoordin/hackday-dungeon/"
+  },
+  "homepage": "https://github.com/shaunanoordin/hackday-dungeon/",
+  "babel": {
+    "presets": [
+      "env"
+    ]
+  },
+  "dependencies": {
+    "express": "4.16.3",
+    "concurrently": "3.5.1",
+    "webpack": "4.5.0",
+    "webpack-cli": "2.0.14",
+    "babel-core": "6.26.0",
+    "babel-loader": "7.1.4",
+    "babel-preset-env": "1.6.1",
+    "stylus": "0.54.5"
+  },
+  "scripts": {
+    "start": "webpack && stylus src -o app && node server.js",
+    "dev": "concurrently \"webpack --watch\" \"stylus src -o app --watch\" \"node server.js\""
+  }
+}

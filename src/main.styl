@@ -1,0 +1,60 @@
+dark-colour = #333
+light-colour = #fff
+primary-colour = #c33
+highlight-colour = #f33
+
+*
+  box-sizing: border-box
+
+:root
+  font-family: "Lucida Console", monospace
+  font-size: 16px
+  background: dark-colour url("../assets/simple-bg.png")
+  color: dark-colour
+
+html
+body
+  padding: 0
+  margin: 0
+  width: 100%
+  height: 100%
+
+a
+  color: primary-colour
+  text-decoration: none
+  
+  &:hover
+    color: highlight-colour
+
+table
+  width: 100%
+  border-collapse: collapse
+  
+  td
+  th
+    border: 1px solid dark-colour
+  
+#app
+  display: flex
+  flex-direction: column
+  width: 100%
+  height: 100%
+  max-width: 50em
+  margin: 0 auto
+  background: light-colour
+
+#app > header
+#app > footer
+  flex: 0 0 auto
+  padding: 1em
+  background: primary-colour
+  color: light-colour
+  
+  h1
+    margin: 0
+    padding: 0
+
+#app > main
+  flex: 1 1 auto
+  padding: 1em
+  background: light-colour
