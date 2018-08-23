@@ -49,6 +49,7 @@ class App {
     this.map = {
       width: 1,
       height: 1,
+      margin: 1,
     };
     
     this.entities = {};
@@ -184,8 +185,8 @@ class App {
   initialiseGame(firstRound) {
     this.map.width = firstRound.initial_world.width;
     this.map.height = firstRound.initial_world.height;
-    this.html.canvas.width = this.map.width * App.TILE_SIZE;
-    this.html.canvas.height = this.map.height * App.TILE_SIZE;
+    this.html.canvas.width = (this.map.width + 2 * this.map.margin) * App.TILE_SIZE;
+    this.html.canvas.height = (this.map.height + 2 * this.map.margin) * App.TILE_SIZE;
     this.entities = {};
     this.entityStyles = {};
   }
@@ -207,11 +208,13 @@ class App {
     for (let col = 0; col < this.map.width; col++) {
       for (let row = 0; row < this.map.height; row++) {
         this.c2d.rect(
-          col * App.TILE_SIZE, row * App.TILE_SIZE,
+          (col + this.map.margin) * App.TILE_SIZE,
+          (row + this.map.margin) * App.TILE_SIZE,
           App.TILE_SIZE, App.TILE_SIZE
         );
       }
     }
+    this.c2d.lineWidth = 1;
     this.c2d.strokeStyle = STYLES.GRID_STROKE;
     this.c2d.stroke();
     
@@ -224,8 +227,8 @@ class App {
         && (event.type === "spawn" || event.type === "move");
       if (willEntityBeAnimatedLater) return;
       
-      const midX = (entity.coord.x + 0.5) * App.TILE_SIZE;
-      const midY = (entity.coord.y + 0.5) * App.TILE_SIZE;
+      const midX = (entity.coord.x + this.map.margin + 0.5) * App.TILE_SIZE;
+      const midY = (entity.coord.y + this.map.margin + 0.5) * App.TILE_SIZE;
       
       this.paintEntity(entity.id, midX, midY, "idle");
     });
@@ -244,8 +247,8 @@ class App {
         //Event: player spawns.
         //Animation: expanding circle.
         case "spawn":
-          midX = (event.at.x + 0.5) * App.TILE_SIZE;
-          midY = (event.at.y + 0.5) * App.TILE_SIZE;
+          midX = (event.at.x + this.map.margin + 0.5) * App.TILE_SIZE;
+          midY = (event.at.y + this.map.margin + 0.5) * App.TILE_SIZE;
           radius = Math.max(App.TILE_SIZE / 2 * tweenPercent, 1);
           entityStyle = (this.entityStyles[entityId])
             ? this.entityStyles[entityId]
@@ -253,6 +256,7 @@ class App {
 
           this.c2d.beginPath();
           this.c2d.arc(midX, midY, radius, 0, 2 * Math.PI);
+          this.c2d.lineWidth = 2;
           this.c2d.strokeStyle = entityStyle;
           this.c2d.stroke();
           
@@ -260,9 +264,9 @@ class App {
         
         case "move":
           midX = ((event.from.x + (event.to.x - event.from.x) * tweenPercent)
-                 + 0.5) * App.TILE_SIZE;
+                 + this.map.margin + 0.5) * App.TILE_SIZE;
           midY = ((event.from.y + (event.to.y - event.from.y) * tweenPercent)
-                 + 0.5) * App.TILE_SIZE;          
+                 + this.map.margin + 0.5) * App.TILE_SIZE;          
           this.paintEntity(entityId, midX, midY, "moving");
           
         /* "type": "move",
