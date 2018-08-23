@@ -6,7 +6,19 @@ Hack Day Dungeon (Visualiser)
  */
 
 const COLOURS = {
-  GREY: '#999'
+  GREY: '#999',
+  MISSING: '#639',
+};
+
+const STYLES = {
+  GRID_STROKE: '#ccc',
+  ENTITIES_FILL: [
+    '#c33',
+    '#39c',
+    '#fc3',
+    '#396',
+    '#c9f',
+  ],
 };
 
 /*  Primary App Class
@@ -31,7 +43,7 @@ class App {
     };
     
     this.entities = {};
-    this.entityStyle = {};  //Visual style of entities. Derived randomly.
+    this.entityStyles = {};  //Visual style of entities. Derived randomly.
         
     this.initialiseCanvas();
     this.updateUI_consoleRun();
@@ -43,14 +55,17 @@ class App {
   }
   
   start() {
-    this.processConsoleIn();    
-    this.updateUI_consoleRun();
+    this.currentRound = 0;
+    this.currentSubstep = 0;
+    this.processConsoleIn();
     this.runCycle && clearInterval(this.runCycle);
     this.runCycle = setInterval(this.runStep.bind(this), 1000 / App.TICKS_PER_SECOND);
+    this.updateUI_consoleRun();
   }
   
   stop() {
     this.runCycle && clearInterval(this.runCycle);
+    this.runCycle = undefined;
     this.updateUI_consoleRun();
   }
   
@@ -94,20 +109,32 @@ class App {
         );
       }
     }
+    this.c2d.strokeStyle = STYLES.GRID_STROKE;
     this.c2d.stroke();
     
     //For each entity, draw the character.
     Object.values(this.entities).forEach(entity => {
-      console.log('+++ ', entity);
+      //TODO: move this to the "spawn" event
+      this.registerEntityStyle(entity);
+      
       const midX = (entity.coord.x + 0.5) * App.TILE_SIZE;
       const midY = (entity.coord.y + 0.5) * App.TILE_SIZE;
       const radius = App.TILE_SIZE / 2;
+      const entityStyle = (this.entityStyles[entity.id])
+        ? this.entityStyles[entity.id]
+        : COLOURS.MISSING;
       
       this.c2d.beginPath();
       this.c2d.arc(midX, midY, radius, 0, 2 * Math.PI);
-      this.c2d.stroke();
+      this.c2d.fillStyle = entityStyle;
+      this.c2d.fill();
     });
-    
+  }
+  
+  registerEntityStyle(entity) {
+    if (!this.entityStyles[entity.id]) {
+      this.entityStyles[entity.id] = STYLES.ENTITIES_FILL[Object.values(this.entityStyles).length];
+    }
   }
   
   initialiseCanvas() {
