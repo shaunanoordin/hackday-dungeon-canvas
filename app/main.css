@@ -34,7 +34,6 @@ table th {
   flex-direction: column;
   width: 100%;
   height: 100%;
-  max-width: 50em;
   margin: 0 auto;
   background: #fff;
 }
@@ -44,6 +43,7 @@ table th {
   padding: 1em;
   background: #c33;
   color: #fff;
+  font-size: 0.5rem;
 }
 #app > header h1,
 #app > footer h1 {
@@ -52,6 +52,38 @@ table th {
 }
 #app > main {
   flex: 1 1 auto;
-  padding: 1em;
+  flex-direction: column;
+  display: flex;
   background: #fff;
+}
+#app > main #container-canvas {
+  flex: 1 1 auto;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+}
+#app > main #container-canvas #canvas {
+  flex: 0 0 auto;
+}
+#app > main #console {
+  background: #fff;
+  flex: 0 0 auto;
+}
+#app > main #console #console-out {
+  white-space: pre;
+  width: 100%;
+  height: 3.5em;
+  overflow: auto;
+}
+#app > main #console #console-in {
+  display: block;
+  font-family: monospace;
+  width: 100%;
+  height: 3.5em;
+}
+#app > main #console #console-run {
+  display: block;
+  width: 100%;
 }
