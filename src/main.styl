@@ -39,7 +39,6 @@ table
   flex-direction: column
   width: 100%
   height: 100%
-  max-width: 50em
   margin: 0 auto
   background: light-colour
 
@@ -49,6 +48,7 @@ table
   padding: 1em
   background: primary-colour
   color: light-colour
+  font-size: 0.5rem
   
   h1
     margin: 0
@@ -56,5 +56,37 @@ table
 
 #app > main
   flex: 1 1 auto
-  padding: 1em
+  flex-direction: column
+  display: flex
   background: light-colour
+
+  #container-canvas
+    flex: 1 1 auto
+    background: light-colour
+    display: flex
+    align-items: center
+    justify-content: center
+    overflow: auto
+    
+    #canvas
+      flex: 0 0 auto
+    
+  #console
+    background: light-colour
+    flex: 0 0 auto
+    
+    #console-out
+      white-space: pre
+      width: 100%
+      height: 3.5em
+      overflow: auto
+      
+    #console-in
+      display: block
+      font-family: monospace
+      width: 100%
+      height: 3.5em
+      
+    #console-run
+      display: block
+      width: 100%
