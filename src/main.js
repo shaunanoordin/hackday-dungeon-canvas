@@ -29,6 +29,9 @@ class App {
       width: 1,
       height: 1,
     };
+    
+    this.entities = {};
+    this.entityStyle = {};  //Visual style of entities. Derived randomly.
         
     this.initialiseCanvas();
     this.updateUI_consoleRun();
@@ -62,12 +65,15 @@ class App {
   runStep() {
     console.log('+++ round ', this.currentRound);
     const round = this.rounds[this.currentRound];
+    if (!round) { this.stop(); return; }
     
     //If this is the first round, initialise eeeverything
     if (this.currentRound === 0) {
       this.initialiseGame(round);
     }
     
+    //Get the initial state of the entities.
+    this.entities = round.initial_world.entities;
     
     this.paint();    
     this.currentRound++;
@@ -78,6 +84,7 @@ class App {
     const h = this.map.height * App.TILE_SIZE;
     this.c2d.clearRect(0, 0, w, h);
     
+    //Draw the grid
     this.c2d.beginPath();
     for (let col = 0; col < this.map.width; col++) {
       for (let row = 0; row < this.map.height; row++) {
@@ -88,6 +95,19 @@ class App {
       }
     }
     this.c2d.stroke();
+    
+    //For each entity, draw the character.
+    Object.values(this.entities).forEach(entity => {
+      console.log('+++ ', entity);
+      const midX = (entity.coord.x + 0.5) * App.TILE_SIZE;
+      const midY = (entity.coord.y + 0.5) * App.TILE_SIZE;
+      const radius = App.TILE_SIZE / 2;
+      
+      this.c2d.beginPath();
+      this.c2d.arc(midX, midY, radius, 0, 2 * Math.PI);
+      this.c2d.stroke();
+    });
+    
   }
   
   initialiseCanvas() {
