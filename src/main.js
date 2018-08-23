@@ -40,11 +40,14 @@ class App {
     this.entityStyles = {};  //Visual style of entities. Derived when entities are spawned.
     
     this.initialiseCanvas();
-    this.updateUI_consoleActionStart();
+    this.updateUI_console();
     
     //Convenience: after a short delay, focus on the Start/Stop button.
     this.html.consoleActionStart
-    && setTimeout(() => this.html.consoleActionStart.focus(), 500);
+    && setTimeout(() => {
+      this.html.consoleActionStart.focus();
+      this.html.consoleActionStart.click()
+    }, 500);
   }
   /*
   ----------------------------------------------------------------
@@ -62,26 +65,34 @@ class App {
     this.processConsoleIn();
     this.runCycle && clearInterval(this.runCycle);
     this.runCycle = setInterval(this.runStep.bind(this), 1000 / App.TICKS_PER_SECOND);
-    this.updateUI_consoleActionStart();
+    this.updateUI_console();
   }
   
   stop() {
     this.runCycle && clearInterval(this.runCycle);
     this.runCycle = undefined;
-    this.updateUI_consoleActionStart();
+    this.updateUI_console();
   }
   
-  updateUI_consoleActionStart() {
+  updateUI_console() {
     if (!this.runCycle) {
       this.html.consoleActionStart.textContent = "START";
+      this.html.consoleIn.disabled = false;
     } else {
       this.html.consoleActionStart.textContent = "STOP";
+      this.html.consoleIn.disabled = true;
     }
   }
   
   processConsoleIn() {
-    const input = JSON.parse(this.html.consoleIn.value);
-    this.rounds = input.rounds;
+    try {
+      const input = JSON.parse(this.html.consoleIn.value);
+      this.rounds = input.rounds;
+    } catch (err) {
+      this.html.consoleOut.textContent = `ERROR:\r\n${err}\r\n`;
+      this.stop();
+      throw(err);
+    }
   }
 
   consoleActionStart_onClick() {
