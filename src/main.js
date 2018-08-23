@@ -44,19 +44,23 @@ class App {
     
     this.entities = {};
     this.entityStyles = {};  //Visual style of entities. Derived randomly.
-        
+    
     this.initialiseCanvas();
     this.updateUI_consoleRun();
     
     this.rounds = [];
+    this.roundEvents = [];
+    
     this.currentRound = 0;
-    this.currentSubstep = 0;
-    this.SUBSTEPS_PER_TURN
+    this.currentRoundEvent = 0;
+    this.currentTick = 0;  //Animation step.
   }
   
   start() {
     this.currentRound = 0;
-    this.currentSubstep = 0;
+    this.currentRoundEvent = 0;
+    this.currentTick = 0;
+    
     this.processConsoleIn();
     this.runCycle && clearInterval(this.runCycle);
     this.runCycle = setInterval(this.runStep.bind(this), 1000 / App.TICKS_PER_SECOND);
@@ -78,20 +82,45 @@ class App {
   }
   
   runStep() {
-    console.log('+++ round ', this.currentRound);
-    const round = this.rounds[this.currentRound];
-    if (!round) { this.stop(); return; }
+    console.log('+++ r/e/t ' + this.currentRound + '/' + this.currentRoundEvent + '/' + this.currentTick);
     
-    //If this is the first round, initialise eeeverything
-    if (this.currentRound === 0) {
+    //Get the current round.
+    const round = this.rounds[this.currentRound];
+    if (!round) { this.stop(); return; }  //If we're out of rounds, the game is over.
+    
+    //If this is the very start of the game, initialise the game.
+    if (this.currentRound === 0
+        && this.currentRoundEvent === 0
+        && this.currentTick === 0) {
       this.initialiseGame(round);
     }
     
-    //Get the initial state of the entities.
-    this.entities = round.initial_world.entities;
+    //If this is the very start of the round, initialise it.
+    if (this.currentRoundEvent === 0
+        && this.currentTick === 0) {
+      this.entities = round.initial_world.entities;
+    }
     
-    this.paint();    
-    this.currentRound++;
+    //If this is the very start of an event... do something?
+    if (this.currentTick === 0) {}
+    
+    //PAINT PAINT PAINT!
+    this.paint();
+    
+    //Take the next step
+    this.currentTick++;
+    if (this.currentTick >= App.TICKS_PER_EVENT) {
+      this.currentTick = 0;
+      
+      this.currentRoundEvent++;      
+      if (this.currentRoundEvent >= round.events.length) {
+        this.currentRoundEvent = 0;
+        
+        this.currentRound++;
+      }
+    }
+    
+    //this.currentRound++;
   }
   
   paint() {
@@ -170,7 +199,8 @@ class App {
  */
 //==============================================================================
 App.TILE_SIZE = 32;  //Each tile is 32x32 pixels
-App.TICKS_PER_SECOND = 1;
+App.TICKS_PER_SECOND = 2;
+App.TICKS_PER_EVENT = 2;
 //==============================================================================
 
 /*  Initialisations
