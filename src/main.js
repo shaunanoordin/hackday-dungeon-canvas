@@ -237,8 +237,8 @@ class App {
     const tweenPercent = this.currentTick / App.TICKS_PER_EVENT;
     if (event) {
       let entityId = event.entity;
-      let midX = 0;
-      let midY = 0;
+      let entity = this.entities[entityId];
+      let midX = 0, midY = 0;
       let radius = 1;
       let entityStyle = COLOURS.MISSING;
       
@@ -266,19 +266,30 @@ class App {
           midX = ((event.from.x + (event.to.x - event.from.x) * tweenPercent)
                  + this.map.margin + 0.5) * App.TILE_SIZE;
           midY = ((event.from.y + (event.to.y - event.from.y) * tweenPercent)
-                 + this.map.margin + 0.5) * App.TILE_SIZE;          
+                 + this.map.margin + 0.5) * App.TILE_SIZE;
           this.paintEntity(entityId, midX, midY, "moving");
           
-        /* "type": "move",
-          "entity": "0eee3f36-36d1-46e7-be9c-e74a458b4eb8",
-          "from": {
-            "x": 7,
-            "y": 2
-          },
-          "to": {
-            "x": 7,
-            "y": 1
-          }*/
+          break;
+        
+        case "ranged":
+          if (!entity) break;
+          
+          event.coords.forEach(projectile => {
+            midX = ((entity.coord.x + (projectile.x - entity.coord.x) * tweenPercent)
+                   + this.map.margin + 0.5) * App.TILE_SIZE;
+            midY = ((entity.coord.y + (projectile.y - entity.coord.y) * tweenPercent)
+                   + this.map.margin + 0.5) * App.TILE_SIZE;
+            radius = App.TILE_SIZE / 4;
+            
+            this.c2d.beginPath();
+            this.c2d.arc(midX, midY, radius, 0, 2 * Math.PI);
+            this.c2d.fillStyle = (this.entityStyles[entityId])
+              ? this.entityStyles[entityId]
+              : COLOURS.MISSING;
+            this.c2d.fill();
+          });
+          
+          break;
         
         default:
       }
