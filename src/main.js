@@ -5,24 +5,6 @@ Hack Day Dungeon (Visualiser)
 (Shaun A. Noordin | shaunanoordin.com | 20180724)
  */
 
-const STYLES = {
-  GRID: {
-    COLOUR: '#ccc',
-    LINEWIDTH: 1,
-  },
-  ENTITIES: {
-    COLOURS: [
-      '#c33',
-      '#39c',
-      '#fc3',
-      '#396',
-      '#c9f',
-    ],
-    DEAD_COLOUR: '#999',
-  },
-  UNKNOWN: '#f0f',
-};
-
 /*  Primary App Class
  */
 //==============================================================================
@@ -163,7 +145,7 @@ class App {
                 x: event.at.x,
                 y: event.at.y,
               },
-              health: 100,
+              health: App.MAX_ENTITY_HEALTH,
               ducked: false,
             };
             break;
@@ -218,8 +200,8 @@ class App {
         );
       }
     }
-    this.c2d.lineWidth = STYLES.GRID.LINEWIDTH;
-    this.c2d.strokeStyle = STYLES.GRID.COLOUR;
+    this.c2d.lineWidth = App.STYLES.GRID.LINEWIDTH;
+    this.c2d.strokeStyle = App.STYLES.GRID.COLOUR;
     this.c2d.stroke();
     
     //For each entity, draw the character.
@@ -248,7 +230,7 @@ class App {
       let entity = this.entities[entityId];
       let midX = 0, midY = 0;
       let radius = 1;
-      let entityStyle = STYLES.UNKNOWN;
+      let entityStyle = App.STYLES.UNKNOWN;
       
       switch (event.type) {
           
@@ -260,7 +242,7 @@ class App {
           radius = Math.max(App.TILE_SIZE / 2 * tweenPercent, 1);
           entityStyle = (this.entityStyles[entityId])
             ? this.entityStyles[entityId]
-            : STYLES.UNKNOWN;
+            : App.STYLES.UNKNOWN;
 
           this.c2d.beginPath();
           this.c2d.arc(midX, midY, radius, 0, 2 * Math.PI);
@@ -278,7 +260,7 @@ class App {
           radius = Math.max(App.TILE_SIZE / 2 * (1 - tweenPercent), 1);
           entityStyle = (this.entityStyles[entityId])
             ? this.entityStyles[entityId]
-            : STYLES.UNKNOWN;
+            : App.STYLES.UNKNOWN;
 
           this.c2d.beginPath();
           this.c2d.arc(midX, midY, radius, 0, 2 * Math.PI);
@@ -326,11 +308,11 @@ class App {
     if (action === "idle" || action === "moving") {
       this.c2d.fillStyle = (this.entityStyles[entity.id])
         ? this.entityStyles[entity.id]
-        : STYLES.UNKNOWN;
+        : App.STYLES.UNKNOWN;
     } else if (action === "dead") {
-      this.c2d.fillStyle = STYLES.ENTITIES.DEAD_COLOUR;
+      this.c2d.fillStyle = App.STYLES.ENTITIES.DEAD_COLOUR;
     } else {
-      this.c2d.fillStyle = STYLES.UNKNOWN;
+      this.c2d.fillStyle = App.STYLES.UNKNOWN;
     }
     
     this.c2d.fill();
@@ -342,13 +324,13 @@ class App {
     this.c2d.arc(midX, midY, radius, 0, 2 * Math.PI);
     this.c2d.fillStyle = (this.entityStyles[entity.id])
       ? this.entityStyles[entity.id]
-      : STYLES.UNKNOWN;
+      : App.STYLES.UNKNOWN;
     this.c2d.fill();
   }
   
   registerEntityStyle(entityId) {
     if (!this.entityStyles[entityId]) {
-      this.entityStyles[entityId] = STYLES.ENTITIES.COLOURS[Object.values(this.entityStyles).length];
+      this.entityStyles[entityId] = App.STYLES.ENTITIES.COLOURS[Object.values(this.entityStyles).length];
     }
   }
   /*
@@ -363,6 +345,25 @@ class App {
 App.TILE_SIZE = 32;  //Each tile is 32x32 pixels
 App.TICKS_PER_SECOND = 60;
 App.TICKS_PER_EVENT = 30;
+App.MAX_ENTITY_HEALTH = 100;
+
+App.STYLES = {
+  GRID: {
+    COLOUR: '#ccc',
+    LINEWIDTH: 1,
+  },
+  ENTITIES: {
+    COLOURS: [
+      '#c33',
+      '#39c',
+      '#fc3',
+      '#396',
+      '#c9f',
+    ],
+    DEAD_COLOUR: '#ccc',
+  },
+  UNKNOWN: '#f0f',
+};
 //==============================================================================
 
 /*  Initialisations
