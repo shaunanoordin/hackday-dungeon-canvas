@@ -224,7 +224,7 @@ class App {
       //at this stage.
       const willEntityBeAnimatedLater = event
         && event.entity === entity.id
-        && (event.type === "spawn" || event.type === "move");
+        && (event.type === "spawn" || event.type === "move" || event.type === "death");
       if (willEntityBeAnimatedLater) return;
       
       const midX = (entity.coord.x + this.map.margin + 0.5) * App.TILE_SIZE;
@@ -261,7 +261,26 @@ class App {
           this.c2d.stroke();
           
           break;
+          
+        //Event: player is KOed.
+        //Animation: collapsing circle.
+        case "death":
+          midX = (entity.coord.x + this.map.margin + 0.5) * App.TILE_SIZE;
+          midY = (entity.coord.y + this.map.margin + 0.5) * App.TILE_SIZE;
+          radius = Math.max(App.TILE_SIZE / 2 * (1 - tweenPercent), 1);
+          entityStyle = (this.entityStyles[entityId])
+            ? this.entityStyles[entityId]
+            : COLOURS.MISSING;
+
+          this.c2d.beginPath();
+          this.c2d.arc(midX, midY, radius, 0, 2 * Math.PI);
+          this.c2d.lineWidth = 2;
+          this.c2d.strokeStyle = entityStyle;
+          this.c2d.stroke();
+          
+          break;
         
+        //Event: player moves to a new location.
         case "move":
           if (!entity) break;
           
