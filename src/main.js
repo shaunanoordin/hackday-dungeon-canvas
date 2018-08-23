@@ -230,7 +230,7 @@ class App {
       const midX = (entity.coord.x + this.map.margin + 0.5) * App.TILE_SIZE;
       const midY = (entity.coord.y + this.map.margin + 0.5) * App.TILE_SIZE;
       
-      this.paintEntity(entity.id, midX, midY, "idle");
+      this.paintEntity(entity, midX, midY, "idle");
     });
     
     //If there's an event, animate it.
@@ -263,11 +263,13 @@ class App {
           break;
         
         case "move":
+          if (!entity) break;
+          
           midX = ((event.from.x + (event.to.x - event.from.x) * tweenPercent)
                  + this.map.margin + 0.5) * App.TILE_SIZE;
           midY = ((event.from.y + (event.to.y - event.from.y) * tweenPercent)
                  + this.map.margin + 0.5) * App.TILE_SIZE;
-          this.paintEntity(entityId, midX, midY, "moving");
+          this.paintEntity(entity, midX, midY, "moving");
           
           break;
         
@@ -279,14 +281,7 @@ class App {
                    + this.map.margin + 0.5) * App.TILE_SIZE;
             midY = ((entity.coord.y + (projectile.y - entity.coord.y) * tweenPercent)
                    + this.map.margin + 0.5) * App.TILE_SIZE;
-            radius = App.TILE_SIZE / 4;
-            
-            this.c2d.beginPath();
-            this.c2d.arc(midX, midY, radius, 0, 2 * Math.PI);
-            this.c2d.fillStyle = (this.entityStyles[entityId])
-              ? this.entityStyles[entityId]
-              : COLOURS.MISSING;
-            this.c2d.fill();
+            this.paintProjectile(entity, midX, midY);
           });
           
           break;
@@ -296,15 +291,23 @@ class App {
     }
   }
   
-  paintEntity(entityId, midX, midY, action) {
+  paintEntity(entity, midX, midY, action) {
     const radius = App.TILE_SIZE / 2;
-    const entityStyle = (this.entityStyles[entityId])
-      ? this.entityStyles[entityId]
-      : COLOURS.MISSING;
-
     this.c2d.beginPath();
     this.c2d.arc(midX, midY, radius, 0, 2 * Math.PI);
-    this.c2d.fillStyle = entityStyle;
+    this.c2d.fillStyle = (this.entityStyles[entity.id])
+      ? this.entityStyles[entity.id]
+      : COLOURS.MISSING;;
+    this.c2d.fill();
+  }
+  
+  paintProjectile(entity, midX, midY) {
+    const radius = App.TILE_SIZE / 4;
+    this.c2d.beginPath();
+    this.c2d.arc(midX, midY, radius, 0, 2 * Math.PI);
+    this.c2d.fillStyle = (this.entityStyles[entity.id])
+      ? this.entityStyles[entity.id]
+      : COLOURS.MISSING;
     this.c2d.fill();
   }
   
