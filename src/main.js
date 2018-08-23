@@ -5,20 +5,22 @@ Hack Day Dungeon (Visualiser)
 (Shaun A. Noordin | shaunanoordin.com | 20180724)
  */
 
-const COLOURS = {
-  GREY: '#999',
-  MISSING: '#639',
-};
-
 const STYLES = {
-  GRID_STROKE: '#ccc',
-  ENTITIES: [
-    '#c33',
-    '#39c',
-    '#fc3',
-    '#396',
-    '#c9f',
-  ],
+  GRID: {
+    COLOUR: '#ccc',
+    LINEWIDTH: 1,
+  },
+  ENTITIES: {
+    COLOURS: [
+      '#c33',
+      '#39c',
+      '#fc3',
+      '#396',
+      '#c9f',
+    ],
+    DEAD_COLOUR: '#999',
+  },
+  UNKNOWN: '#f0f',
 };
 
 /*  Primary App Class
@@ -155,12 +157,14 @@ class App {
             this.registerEntityStyle(entityId);
             
             //Add the entity to the list of current entities.
-            this.entities[entityId] = {
+            this.entities[entityId] = {  //DEFAULT ENTITY
               id: entityId,
               coord: {
                 x: event.at.x,
                 y: event.at.y,
               },
+              health: 100,
+              ducked: false,
             };
             break;
         }
@@ -214,8 +218,8 @@ class App {
         );
       }
     }
-    this.c2d.lineWidth = 1;
-    this.c2d.strokeStyle = STYLES.GRID_STROKE;
+    this.c2d.lineWidth = STYLES.GRID.LINEWIDTH;
+    this.c2d.strokeStyle = STYLES.GRID.COLOUR;
     this.c2d.stroke();
     
     //For each entity, draw the character.
@@ -230,7 +234,11 @@ class App {
       const midX = (entity.coord.x + this.map.margin + 0.5) * App.TILE_SIZE;
       const midY = (entity.coord.y + this.map.margin + 0.5) * App.TILE_SIZE;
       
-      this.paintEntity(entity, midX, midY, "idle");
+      if (entity.health > 0) {
+        this.paintEntity(entity, midX, midY, "idle");
+      } else {
+        this.paintEntity(entity, midX, midY, "dead");
+      }
     });
     
     //If there's an event, animate it.
@@ -240,7 +248,7 @@ class App {
       let entity = this.entities[entityId];
       let midX = 0, midY = 0;
       let radius = 1;
-      let entityStyle = COLOURS.MISSING;
+      let entityStyle = STYLES.UNKNOWN;
       
       switch (event.type) {
           
@@ -252,7 +260,7 @@ class App {
           radius = Math.max(App.TILE_SIZE / 2 * tweenPercent, 1);
           entityStyle = (this.entityStyles[entityId])
             ? this.entityStyles[entityId]
-            : COLOURS.MISSING;
+            : STYLES.UNKNOWN;
 
           this.c2d.beginPath();
           this.c2d.arc(midX, midY, radius, 0, 2 * Math.PI);
@@ -270,7 +278,7 @@ class App {
           radius = Math.max(App.TILE_SIZE / 2 * (1 - tweenPercent), 1);
           entityStyle = (this.entityStyles[entityId])
             ? this.entityStyles[entityId]
-            : COLOURS.MISSING;
+            : STYLES.UNKNOWN;
 
           this.c2d.beginPath();
           this.c2d.arc(midX, midY, radius, 0, 2 * Math.PI);
@@ -314,9 +322,17 @@ class App {
     const radius = App.TILE_SIZE / 2;
     this.c2d.beginPath();
     this.c2d.arc(midX, midY, radius, 0, 2 * Math.PI);
-    this.c2d.fillStyle = (this.entityStyles[entity.id])
-      ? this.entityStyles[entity.id]
-      : COLOURS.MISSING;;
+    
+    if (action === "idle" || action === "moving") {
+      this.c2d.fillStyle = (this.entityStyles[entity.id])
+        ? this.entityStyles[entity.id]
+        : STYLES.UNKNOWN;
+    } else if (action === "dead") {
+      this.c2d.fillStyle = STYLES.ENTITIES.DEAD_COLOUR;
+    } else {
+      this.c2d.fillStyle = STYLES.UNKNOWN;
+    }
+    
     this.c2d.fill();
   }
   
@@ -326,13 +342,13 @@ class App {
     this.c2d.arc(midX, midY, radius, 0, 2 * Math.PI);
     this.c2d.fillStyle = (this.entityStyles[entity.id])
       ? this.entityStyles[entity.id]
-      : COLOURS.MISSING;
+      : STYLES.UNKNOWN;
     this.c2d.fill();
   }
   
   registerEntityStyle(entityId) {
     if (!this.entityStyles[entityId]) {
-      this.entityStyles[entityId] = STYLES.ENTITIES[Object.values(this.entityStyles).length];
+      this.entityStyles[entityId] = STYLES.ENTITIES.COLOURS[Object.values(this.entityStyles).length];
     }
   }
   /*
