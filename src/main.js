@@ -18,12 +18,12 @@ class App {
       canvas: document.getElementById("canvas"),
       consoleIn: document.getElementById("console-in"),
       consoleOut: document.getElementById("console-out"),
-      consoleRun: document.getElementById("console-run"),
+      consoleActionStart: document.getElementById("console-action-start"),
     };
     this.c2d = this.html.canvas.getContext("2d");
     this.runCycle = null;
     
-    this.html.consoleRun.onclick = this.consoleRun_onClick.bind(this);
+    this.html.consoleActionStart.onclick = this.consoleActionStart_onClick.bind(this);
     
     this.rounds = [];
     this.currentRound = 0;
@@ -40,7 +40,11 @@ class App {
     this.entityStyles = {};  //Visual style of entities. Derived when entities are spawned.
     
     this.initialiseCanvas();
-    this.updateUI_consoleRun();  
+    this.updateUI_consoleActionStart();
+    
+    //Convenience: after a short delay, focus on the Start/Stop button.
+    this.html.consoleActionStart
+    && setTimeout(() => this.html.consoleActionStart.focus(), 500);
   }
   /*
   ----------------------------------------------------------------
@@ -58,20 +62,20 @@ class App {
     this.processConsoleIn();
     this.runCycle && clearInterval(this.runCycle);
     this.runCycle = setInterval(this.runStep.bind(this), 1000 / App.TICKS_PER_SECOND);
-    this.updateUI_consoleRun();
+    this.updateUI_consoleActionStart();
   }
   
   stop() {
     this.runCycle && clearInterval(this.runCycle);
     this.runCycle = undefined;
-    this.updateUI_consoleRun();
+    this.updateUI_consoleActionStart();
   }
   
-  updateUI_consoleRun() {
+  updateUI_consoleActionStart() {
     if (!this.runCycle) {
-      this.html.consoleRun.textContent = "START";
+      this.html.consoleActionStart.textContent = "START";
     } else {
-      this.html.consoleRun.textContent = "STOP";
+      this.html.consoleActionStart.textContent = "STOP";
     }
   }
   
@@ -80,7 +84,7 @@ class App {
     this.rounds = input.rounds;
   }
 
-  consoleRun_onClick() {
+  consoleActionStart_onClick() {
     if (this.runCycle) { this.stop(); }
     else { this.start(); }
   }
@@ -246,7 +250,7 @@ class App {
 
           this.c2d.beginPath();
           this.c2d.arc(midX, midY, radius, 0, 2 * Math.PI);
-          this.c2d.lineWidth = 2;
+          this.c2d.lineWidth = App.STYLES.ENTITIES.SPAWN_LINEWIDTH;
           this.c2d.strokeStyle = entityStyle;
           this.c2d.stroke();
           
@@ -264,7 +268,7 @@ class App {
 
           this.c2d.beginPath();
           this.c2d.arc(midX, midY, radius, 0, 2 * Math.PI);
-          this.c2d.lineWidth = 2;
+          this.c2d.lineWidth = App.STYLES.ENTITIES.SPAWN_LINEWIDTH;
           this.c2d.strokeStyle = entityStyle;
           this.c2d.stroke();
           
@@ -360,6 +364,7 @@ App.STYLES = {
       '#396',
       '#c9f',
     ],
+    SPAWN_LINEWIDTH: 2,
     DEAD_COLOUR: '#ccc',
   },
   UNKNOWN: '#f0f',
