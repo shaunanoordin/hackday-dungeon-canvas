@@ -31,19 +31,27 @@ class App {
     };
     
     this.initialiseCanvas();
+    this.updateUI_consoleRun();
   }
   
   start() {
-    console.log('+++ start');
     this.runCycle && clearInterval(this.runCycle);
     this.runCycle = setInterval(this.runStep.bind(this), 1000 / App.TICKS_PER_SECOND);
     this.html.consoleRun.value = "X";
+    this.updateUI_consoleRun();
   }
   
   stop() {
-    console.log('+++ stop');
     this.runCycle && clearInterval(this.runCycle);
-    this.html.consoleRun.value = "Y";
+    this.updateUI_consoleRun();
+  }
+  
+  updateUI_consoleRun() {
+    if (!this.runCycle) {
+      this.html.consoleRun.textContent = "START";
+    } else {
+      this.html.consoleRun.textContent = "STOP";
+    }
   }
   
   runStep() {
@@ -84,7 +92,7 @@ class App {
 /*  Constants
  */
 //==============================================================================
-App.TILE_SIZE = 64;  //Each tile is 32x32 pixels
+App.TILE_SIZE = 32;  //Each tile is 32x32 pixels
 App.TICKS_PER_SECOND = 1;
 //==============================================================================
 
