@@ -25,6 +25,10 @@ const STYLES = {
  */
 //==============================================================================
 class App {
+  /*
+  System and Initialisations
+  ----------------------------------------------------------------
+   */
   constructor() {
     this.html = {
       canvas: document.getElementById("canvas"),
@@ -37,6 +41,11 @@ class App {
     
     this.html.consoleRun.onclick = this.consoleRun_onClick.bind(this);
     
+    this.rounds = [];
+    this.currentRound = 0;
+    this.currentRoundEvent = 0;
+    this.currentTick = 0;  //Animation step.
+    
     this.map = {
       width: 1,
       height: 1,
@@ -46,16 +55,16 @@ class App {
     this.entityStyles = {};  //Visual style of entities. Derived when entities are spawned.
     
     this.initialiseCanvas();
-    this.updateUI_consoleRun();
-    
-    this.rounds = [];
-    this.roundEvents = [];
-    
-    this.currentRound = 0;
-    this.currentRoundEvent = 0;
-    this.currentTick = 0;  //Animation step.
+    this.updateUI_consoleRun();  
   }
+  /*
+  ----------------------------------------------------------------
+   */
   
+  /*
+  User Controls
+  ----------------------------------------------------------------
+   */
   start() {
     this.currentRound = 0;
     this.currentRoundEvent = 0;
@@ -81,6 +90,36 @@ class App {
     }
   }
   
+  processConsoleIn() {
+    const input = JSON.parse(this.html.consoleIn.value);
+    this.rounds = input.rounds;
+  }
+
+  consoleRun_onClick() {
+    if (this.runCycle) { this.stop(); }
+    else { this.start(); }
+  }
+  
+  initialiseCanvas() {
+    //Set the starting canvas size; it'll be overwritten in initialiseGame()
+    this.html.canvas.width = this.map.width * App.TILE_SIZE;
+    this.html.canvas.height = this.map.height * App.TILE_SIZE;
+    
+    //Account for graphical settings.
+    //Remove smoothing so we can scale up the canvas and still have the sharp
+    //edges of pixel art.
+    this.c2d.mozImageSmoothingEnabled = false;
+    this.c2d.msImageSmoothingEnabled = false;
+    this.c2d.imageSmoothingEnabled = false;
+  }
+  /*
+  ----------------------------------------------------------------
+   */
+  
+  /*
+  Game Logic
+  ----------------------------------------------------------------
+   */  
   runStep() {
     //Get the current round.
     const round = this.rounds[this.currentRound];
@@ -142,6 +181,22 @@ class App {
     }
   }
   
+  initialiseGame(firstRound) {
+    this.map.width = firstRound.initial_world.width;
+    this.map.height = firstRound.initial_world.height;
+    this.html.canvas.width = this.map.width * App.TILE_SIZE;
+    this.html.canvas.height = this.map.height * App.TILE_SIZE;
+    this.entities = {};
+    this.entityStyles = {};
+  }
+  /*
+  ----------------------------------------------------------------
+   */
+  
+  /*
+  Animation
+  ----------------------------------------------------------------
+   */
   paint(round, event) {
     const w = this.map.width * App.TILE_SIZE;
     const h = this.map.height * App.TILE_SIZE;
@@ -243,33 +298,9 @@ class App {
       this.entityStyles[entityId] = STYLES.ENTITIES[Object.values(this.entityStyles).length];
     }
   }
-  
-  initialiseCanvas() {
-    this.html.canvas.width = this.map.width * App.TILE_SIZE;
-    this.html.canvas.height = this.map.height * App.TILE_SIZE;
-    
-    //Account for graphical settings
-    this.c2d.mozImageSmoothingEnabled = false;
-    this.c2d.msImageSmoothingEnabled = false;
-    this.c2d.imageSmoothingEnabled = false;
-  }
-  
-  initialiseGame(firstRound) {
-    this.map.width = firstRound.initial_world.width;
-    this.map.height = firstRound.initial_world.height;
-    this.html.canvas.width = this.map.width * App.TILE_SIZE;
-    this.html.canvas.height = this.map.height * App.TILE_SIZE;
-  }
-  
-  processConsoleIn() {
-    const input = JSON.parse(this.html.consoleIn.value);
-    this.rounds = input.rounds;
-  }
-
-  consoleRun_onClick() {
-    if (this.runCycle) { this.stop(); }
-    else { this.start(); }
-  }
+  /*
+  ----------------------------------------------------------------
+   */
 }
 //==============================================================================
 
