@@ -35,10 +35,10 @@ class App {
   }
   
   start() {
+    this.processConsoleIn();    
+    this.updateUI_consoleRun();
     this.runCycle && clearInterval(this.runCycle);
     this.runCycle = setInterval(this.runStep.bind(this), 1000 / App.TICKS_PER_SECOND);
-    this.html.consoleRun.value = "X";
-    this.updateUI_consoleRun();
   }
   
   stop() {
@@ -80,6 +80,11 @@ class App {
     this.c2d.mozImageSmoothingEnabled = false;
     this.c2d.msImageSmoothingEnabled = false;
     this.c2d.imageSmoothingEnabled = false;
+  }
+  
+  processConsoleIn() {
+    const input = JSON.parse(this.html.consoleIn.value);
+    console.log(input);
   }
 
   consoleRun_onClick() {
