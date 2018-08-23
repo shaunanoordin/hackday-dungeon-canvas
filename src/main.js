@@ -26,12 +26,17 @@ class App {
     this.html.consoleRun.onclick = this.consoleRun_onClick.bind(this);
     
     this.map = {
-      width: 10,
-      height: 10,
+      width: 1,
+      height: 1,
     };
-    
+        
     this.initialiseCanvas();
     this.updateUI_consoleRun();
+    
+    this.rounds = [];
+    this.currentRound = 0;
+    this.currentSubstep = 0;
+    this.SUBSTEPS_PER_TURN
   }
   
   start() {
@@ -55,7 +60,20 @@ class App {
   }
   
   runStep() {
-    console.log('+++ step');
+    console.log('+++ round ', this.currentRound);
+    const round = this.rounds[this.currentRound];
+    
+    //If this is the first round, initialise eeeverything
+    if (this.currentRound === 0) {
+      this.initialiseGame(round);
+    }
+    
+    
+    this.paint();    
+    this.currentRound++;
+  }
+  
+  paint() {
     const w = this.map.width * App.TILE_SIZE;
     const h = this.map.height * App.TILE_SIZE;
     this.c2d.clearRect(0, 0, w, h);
@@ -82,9 +100,16 @@ class App {
     this.c2d.imageSmoothingEnabled = false;
   }
   
+  initialiseGame(firstRound) {
+    this.map.width = firstRound.initial_world.width;
+    this.map.height = firstRound.initial_world.height;
+    this.html.canvas.width = this.map.width * App.TILE_SIZE;
+    this.html.canvas.height = this.map.height * App.TILE_SIZE;
+  }
+  
   processConsoleIn() {
     const input = JSON.parse(this.html.consoleIn.value);
-    console.log(input);
+    this.rounds = input.rounds;
   }
 
   consoleRun_onClick() {
