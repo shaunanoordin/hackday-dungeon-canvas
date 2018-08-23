@@ -82,11 +82,15 @@ class App {
   }
   
   runStep() {
-    console.log('+++ r/e/t ' + this.currentRound + '/' + this.currentRoundEvent + '/' + this.currentTick);
-    
     //Get the current round.
     const round = this.rounds[this.currentRound];
     if (!round) { this.stop(); return; }  //If we're out of rounds, the game is over.
+    const event = round.events[this.currentRoundEvent];
+    
+    this.html.consoleOut.textContent = `Round ${this.currentRound+1}\r\n`;
+    if (event) {
+      this.html.consoleOut.textContent += `Event ${this.currentRoundEvent+1} - ${event.type} \n`;
+    }
     
     //If this is the very start of the game, initialise the game.
     if (this.currentRound === 0
@@ -103,7 +107,7 @@ class App {
     
     //If this is the very start of an event... do something?
     if (this.currentTick === 0) {
-      const event = round.events[this.currentRoundEvent];
+      
       if (event) {
         switch (event.type) {
           case "spawn":
