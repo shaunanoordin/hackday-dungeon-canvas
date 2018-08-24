@@ -5,22 +5,6 @@ Hack Day Dungeon (Visualiser)
 (Shaun A. Noordin | shaunanoordin.com | 20180724)
  */
 
-const COLOURS = {
-  GREY: '#999',
-  MISSING: '#639',
-};
-
-const STYLES = {
-  GRID_STROKE: '#ccc',
-  ENTITIES: [
-    '#c33',
-    '#39c',
-    '#fc3',
-    '#396',
-    '#c9f',
-  ],
-};
-
 /*  Primary App Class
  */
 //==============================================================================
@@ -34,12 +18,12 @@ class App {
       canvas: document.getElementById("canvas"),
       consoleIn: document.getElementById("console-in"),
       consoleOut: document.getElementById("console-out"),
-      consoleRun: document.getElementById("console-run"),
+      consoleActionStart: document.getElementById("console-action-start"),
     };
     this.c2d = this.html.canvas.getContext("2d");
     this.runCycle = null;
     
-    this.html.consoleRun.onclick = this.consoleRun_onClick.bind(this);
+    this.html.consoleActionStart.onclick = this.consoleActionStart_onClick.bind(this);
     
     this.rounds = [];
     this.currentRound = 0;
@@ -53,10 +37,21 @@ class App {
     };
     
     this.entities = {};
-    this.entityStyles = {};  //Visual style of entities. Derived when entities are spawned.
+    this.entityExData = {};  //Extra data for each entity. We keep track of this
+      //extra data because Marten's hackday engine doesn't provide information
+      //on a number of superfluous things (e.g. each entity's colours, or their
+      //facing direction - things that don't affect the game, but are important
+      //for visual representation.)
     
     this.initialiseCanvas();
-    this.updateUI_consoleRun();  
+    this.updateUI_console();
+    
+    //Convenience: after a short delay, focus on the Start/Stop button.
+    this.html.consoleActionStart
+    && setTimeout(() => {
+      this.html.consoleActionStart.click();
+      this.html.consoleActionStart.focus();
+    }, 500);
   }
   /*
   ----------------------------------------------------------------
@@ -74,29 +69,37 @@ class App {
     this.processConsoleIn();
     this.runCycle && clearInterval(this.runCycle);
     this.runCycle = setInterval(this.runStep.bind(this), 1000 / App.TICKS_PER_SECOND);
-    this.updateUI_consoleRun();
+    this.updateUI_console();
   }
   
   stop() {
     this.runCycle && clearInterval(this.runCycle);
     this.runCycle = undefined;
-    this.updateUI_consoleRun();
+    this.updateUI_console();
   }
   
-  updateUI_consoleRun() {
+  updateUI_console() {
     if (!this.runCycle) {
-      this.html.consoleRun.textContent = "START";
+      this.html.consoleActionStart.textContent = "START";
+      this.html.consoleIn.disabled = false;
     } else {
-      this.html.consoleRun.textContent = "STOP";
+      this.html.consoleActionStart.textContent = "STOP";
+      this.html.consoleIn.disabled = true;
     }
   }
   
   processConsoleIn() {
-    const input = JSON.parse(this.html.consoleIn.value);
-    this.rounds = input.rounds;
+    try {
+      const input = JSON.parse(this.html.consoleIn.value);
+      this.rounds = input.rounds;
+    } catch (err) {
+      this.html.consoleOut.textContent = `ERROR:\r\n${err}\r\n`;
+      this.stop();
+      throw(err);
+    }
   }
 
-  consoleRun_onClick() {
+  consoleActionStart_onClick() {
     if (this.runCycle) { this.stop(); }
     else { this.start(); }
   }
@@ -152,15 +155,17 @@ class App {
         switch (event.type) {
           case "spawn":
             const entityId = event.entity;
-            this.registerEntityStyle(entityId);
+            this.registerEntity(entityId);
             
             //Add the entity to the list of current entities.
-            this.entities[entityId] = {
+            this.entities[entityId] = {  //DEFAULT ENTITY
               id: entityId,
               coord: {
                 x: event.at.x,
                 y: event.at.y,
               },
+              health: App.MAX_ENTITY_HEALTH,
+              ducked: false,
             };
             break;
         }
@@ -188,7 +193,7 @@ class App {
     this.html.canvas.width = (this.map.width + 2 * this.map.margin) * App.TILE_SIZE;
     this.html.canvas.height = (this.map.height + 2 * this.map.margin) * App.TILE_SIZE;
     this.entities = {};
-    this.entityStyles = {};
+    this.entityExData = {};
   }
   /*
   ----------------------------------------------------------------
@@ -201,9 +206,11 @@ class App {
   paint(round, event) {
     const w = this.map.width * App.TILE_SIZE;
     const h = this.map.height * App.TILE_SIZE;
-    this.c2d.clearRect(0, 0, w, h);
+    const tweenPercent = this.currentTick / App.TICKS_PER_EVENT;
+    this.c2d.clearRect(0, 0, w, h);  //Clear the canvas before drawing.
     
     //Draw the grid
+    //--------------------------------
     this.c2d.beginPath();
     for (let col = 0; col < this.map.width; col++) {
       for (let row = 0; row < this.map.height; row++) {
@@ -214,33 +221,40 @@ class App {
         );
       }
     }
-    this.c2d.lineWidth = 1;
-    this.c2d.strokeStyle = STYLES.GRID_STROKE;
+    this.c2d.lineWidth = App.STYLES.GRID.LINEWIDTH;
+    this.c2d.strokeStyle = App.STYLES.GRID.COLOUR;
     this.c2d.stroke();
+    //--------------------------------
     
     //For each entity, draw the character.
+    //--------------------------------
     Object.values(this.entities).forEach(entity => {
       //If an entity will be animated later (e.g. in an event), don't draw them
       //at this stage.
       const willEntityBeAnimatedLater = event
         && event.entity === entity.id
-        && (event.type === "spawn" || event.type === "move");
+        && (event.type === "spawn" || event.type === "move" || event.type === "death");
       if (willEntityBeAnimatedLater) return;
       
       const midX = (entity.coord.x + this.map.margin + 0.5) * App.TILE_SIZE;
       const midY = (entity.coord.y + this.map.margin + 0.5) * App.TILE_SIZE;
       
-      this.paintEntity(entity.id, midX, midY, "idle");
+      if (entity.health > 0) {
+        this.paintEntity(entity, midX, midY, "idle");
+      } else {
+        this.paintEntity(entity, midX, midY, "dead");
+      }
     });
+    //--------------------------------
     
     //If there's an event, animate it.
-    const tweenPercent = this.currentTick / App.TICKS_PER_EVENT;
+    //--------------------------------
     if (event) {
       let entityId = event.entity;
       let entity = this.entities[entityId];
       let midX = 0, midY = 0;
       let radius = 1;
-      let entityStyle = COLOURS.MISSING;
+      let entityColour = App.STYLES.UNKNOWN;
       
       switch (event.type) {
           
@@ -250,24 +264,45 @@ class App {
           midX = (event.at.x + this.map.margin + 0.5) * App.TILE_SIZE;
           midY = (event.at.y + this.map.margin + 0.5) * App.TILE_SIZE;
           radius = Math.max(App.TILE_SIZE / 2 * tweenPercent, 1);
-          entityStyle = (this.entityStyles[entityId])
-            ? this.entityStyles[entityId]
-            : COLOURS.MISSING;
+          entityColour = (this.entityExData[entityId])
+            ? this.entityExData[entityId].colour
+            : App.STYLES.UNKNOWN;
 
           this.c2d.beginPath();
           this.c2d.arc(midX, midY, radius, 0, 2 * Math.PI);
-          this.c2d.lineWidth = 2;
-          this.c2d.strokeStyle = entityStyle;
+          this.c2d.lineWidth = App.STYLES.ENTITIES.SPAWN_LINEWIDTH;
+          this.c2d.strokeStyle = entityColour;
+          this.c2d.stroke();
+          
+          break;
+          
+        //Event: player is KOed.
+        //Animation: collapsing circle.
+        case "death":
+          midX = (entity.coord.x + this.map.margin + 0.5) * App.TILE_SIZE;
+          midY = (entity.coord.y + this.map.margin + 0.5) * App.TILE_SIZE;
+          radius = Math.max(App.TILE_SIZE / 2 * (1 - tweenPercent), 1);
+          entityColour = (this.entityExData[entityId])
+            ? this.entityExData[entityId].colour
+            : App.STYLES.UNKNOWN;
+
+          this.c2d.beginPath();
+          this.c2d.arc(midX, midY, radius, 0, 2 * Math.PI);
+          this.c2d.lineWidth = App.STYLES.ENTITIES.SPAWN_LINEWIDTH;
+          this.c2d.strokeStyle = entityColour;
           this.c2d.stroke();
           
           break;
         
+        //Event: player moves to a new location.
         case "move":
+          if (!entity) break;
+          
           midX = ((event.from.x + (event.to.x - event.from.x) * tweenPercent)
                  + this.map.margin + 0.5) * App.TILE_SIZE;
           midY = ((event.from.y + (event.to.y - event.from.y) * tweenPercent)
                  + this.map.margin + 0.5) * App.TILE_SIZE;
-          this.paintEntity(entityId, midX, midY, "moving");
+          this.paintEntity(entity, midX, midY, "moving");
           
           break;
         
@@ -279,38 +314,144 @@ class App {
                    + this.map.margin + 0.5) * App.TILE_SIZE;
             midY = ((entity.coord.y + (projectile.y - entity.coord.y) * tweenPercent)
                    + this.map.margin + 0.5) * App.TILE_SIZE;
-            radius = App.TILE_SIZE / 4;
-            
-            this.c2d.beginPath();
-            this.c2d.arc(midX, midY, radius, 0, 2 * Math.PI);
-            this.c2d.fillStyle = (this.entityStyles[entityId])
-              ? this.entityStyles[entityId]
-              : COLOURS.MISSING;
-            this.c2d.fill();
+            this.paintProjectile(entity, midX, midY);
           });
           
           break;
         
         default:
       }
+      //--------------------------------
+      
+      //Now animate some widgets (extra UI stuff such as the HP of each)
+      //--------------------------------
+      Object.values(this.entities).forEach(entity => {
+        this.paintWidget_entityHealth(entity);
+      });
+      //--------------------------------
     }
   }
   
-  paintEntity(entityId, midX, midY, action) {
+  paintEntity(entity, midX, midY, action) {
     const radius = App.TILE_SIZE / 2;
-    const entityStyle = (this.entityStyles[entityId])
-      ? this.entityStyles[entityId]
-      : COLOURS.MISSING;
-
     this.c2d.beginPath();
     this.c2d.arc(midX, midY, radius, 0, 2 * Math.PI);
-    this.c2d.fillStyle = entityStyle;
+    
+    if (action === "idle" || action === "moving") {
+      this.c2d.fillStyle = (this.entityExData[entity.id])
+        ? this.entityExData[entity.id].colour
+        : App.STYLES.UNKNOWN;
+    } else if (action === "dead") {
+      this.c2d.fillStyle = App.STYLES.ENTITIES.DEAD_COLOUR;
+    } else {
+      this.c2d.fillStyle = App.STYLES.UNKNOWN;
+    }
+    
+    this.c2d.fill();
+    
+    //Update the entity's extra data.
+    if (this.entityExData[entity.id]) {
+      this.entityExData[entity.id].displayedX = midX;
+      this.entityExData[entity.id].displayedY = midY;
+    }
+  }
+  
+  paintProjectile(entity, midX, midY) {
+    const radius = App.TILE_SIZE / 4;
+    this.c2d.beginPath();
+    this.c2d.arc(midX, midY, radius, 0, 2 * Math.PI);
+    this.c2d.fillStyle = (this.entityExData[entity.id])
+      ? this.entityExData[entity.id].colour
+      : App.STYLES.UNKNOWN;
     this.c2d.fill();
   }
   
-  registerEntityStyle(entityId) {
-    if (!this.entityStyles[entityId]) {
-      this.entityStyles[entityId] = STYLES.ENTITIES[Object.values(this.entityStyles).length];
+  paintWidget_entityHealth(entity) {
+    if (!entity) return;
+    const exdata = this.entityExData[entity.id];
+    if (!exdata) return;
+    
+    const health = entity.health;
+    
+    //Draw the black body (which acts as the "empty" part of the health bar)
+    //--------------------------------
+    this.c2d.beginPath();
+    this.c2d.rect(
+      exdata.displayedX - App.STYLES.WIDGET.HEALTH_BAR.BODY_WIDTH / 2,
+      exdata.displayedY + App.TILE_SIZE / 2,
+      App.STYLES.WIDGET.HEALTH_BAR.BODY_WIDTH,
+      App.STYLES.WIDGET.HEALTH_BAR.BODY_HEIGHT
+    );
+    this.c2d.fillStyle = App.STYLES.WIDGET.HEALTH_BAR.BODY_COLOUR;
+    this.c2d.fill();
+    //--------------------------------
+    
+    //Draw the coloured bar (which acts as the "filled" part of the health bar)
+    //--------------------------------
+    const healthBar = Math.max(Math.min(health / App.MAX_ENTITY_HEALTH, 100), 0) * App.STYLES.WIDGET.HEALTH_BAR.BODY_WIDTH;
+    this.c2d.beginPath();
+    this.c2d.rect(
+      exdata.displayedX - healthBar / 2,
+      exdata.displayedY + App.TILE_SIZE / 2,
+      healthBar,
+      App.STYLES.WIDGET.HEALTH_BAR.BODY_HEIGHT
+    );
+    this.c2d.fillStyle = (this.entityExData[entity.id])
+      ? this.entityExData[entity.id].colour
+      : App.STYLES.UNKNOWN;;
+    this.c2d.fill();
+    //--------------------------------
+    
+    //Draw the surrounding frame
+    //--------------------------------
+    this.c2d.beginPath();
+    this.c2d.rect(
+      exdata.displayedX - App.STYLES.WIDGET.HEALTH_BAR.BODY_WIDTH / 2,
+      exdata.displayedY + App.TILE_SIZE/2,
+      App.STYLES.WIDGET.HEALTH_BAR.BODY_WIDTH,
+      App.STYLES.WIDGET.HEALTH_BAR.BODY_HEIGHT
+    );
+    this.c2d.lineWidth = App.STYLES.WIDGET.HEALTH_BAR.FRAME_SIZE;
+    this.c2d.strokeStyle = App.STYLES.WIDGET.HEALTH_BAR.FRAME_COLOUR;
+    this.c2d.stroke();
+    //--------------------------------
+    
+    //Draw the health bar text, centred below the actual health bar
+    //--------------------------------
+    if (health > 0) {
+      this.c2d.font = App.STYLES.WIDGET.HEALTH_BAR.FONT;
+      this.c2d.textAlign = "center";
+      this.c2d.textBaseline = "hanging";
+      const textVerticalOffset = App.STYLES.WIDGET.HEALTH_BAR.BODY_HEIGHT + 2 * App.STYLES.WIDGET.HEALTH_BAR.FRAME_SIZE;
+      //----------------
+      this.c2d.lineWidth = App.STYLES.WIDGET.HEALTH_BAR.FRAME_SIZE * 2;  //Text outline
+      this.c2d.strokeStyle = App.STYLES.WIDGET.HEALTH_BAR.FRAME_COLOUR;
+      this.c2d.strokeText(
+        health,
+        exdata.displayedX,
+        exdata.displayedY + App.TILE_SIZE / 2 + textVerticalOffset
+      );
+      //----------------
+      this.c2d.fillStyle = (this.entityExData[entity.id])
+        ? this.entityExData[entity.id].colour
+        : App.STYLES.UNKNOWN;
+      this.c2d.fillText(
+        health,
+        exdata.displayedX,
+        exdata.displayedY + App.TILE_SIZE / 2 + textVerticalOffset
+      );
+    }
+    //--------------------------------
+  }
+  
+  registerEntity(entityId) {
+    if (!this.entityExData[entityId]) {
+      this.entityExData[entityId] = {
+        colour: App.STYLES.ENTITIES.COLOURS[Object.values(this.entityExData).length],
+        displayedX: -10 * App.TILE_SIZE,  //Hide the entity off-screen until the it's established by its firt paintEntity().
+        displayedY: -10 * App.TILE_SIZE,
+        displayedHealth: App.MAX_ENTITY_HEALTH,
+      };
     }
   }
   /*
@@ -325,6 +466,37 @@ class App {
 App.TILE_SIZE = 32;  //Each tile is 32x32 pixels
 App.TICKS_PER_SECOND = 60;
 App.TICKS_PER_EVENT = 30;
+App.MAX_ENTITY_HEALTH = 100;
+App.DISPLAYED_HEALTH_CHANGE_RATE = 10;
+
+App.STYLES = {
+  GRID: {
+    COLOUR: '#ccc',
+    LINEWIDTH: 1,
+  },
+  ENTITIES: {
+    COLOURS: [
+      '#c33',
+      '#39c',
+      '#fc3',
+      '#396',
+      '#c9f',
+    ],
+    SPAWN_LINEWIDTH: 2,
+    DEAD_COLOUR: '#ccc',
+  },
+  WIDGET: {
+    HEALTH_BAR: {
+      FONT: '8px Arial, sans-serif',
+      FRAME_COLOUR: '#fff',
+      FRAME_SIZE: 2,
+      BODY_COLOUR: '#333',
+      BODY_WIDTH: 24,
+      BODY_HEIGHT: 4,
+    },
+  },
+  UNKNOWN: '#f0f',
+};
 //==============================================================================
 
 /*  Initialisations
