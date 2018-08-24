@@ -248,6 +248,22 @@ class App {
     this.entities = {};
     this.entityExData = {};
   }
+  
+  registerEntity(entityId) {
+    if (!this.entityExData[entityId]) {
+      this.entityExData[entityId] = {
+        colour: App.STYLES.ENTITIES.COLOURS[Object.values(this.entityExData).length],
+        imageAsset: this.assets.images.actors[0],
+        spriteTileSize: 32,
+        spriteOffset: {
+          x: 0,
+          y: -4,
+        },
+        displayedX: -10 * App.TILE_SIZE,  //Hide the entity off-screen until the it's established by its firt paintEntity().
+        displayedY: -10 * App.TILE_SIZE,
+      };
+    }
+  }
   /*
   ----------------------------------------------------------------
    */
@@ -373,12 +389,13 @@ class App {
                    + this.map.margin + 0.5) * App.TILE_SIZE;
             midY = ((entity.coord.y + (projectile.y - entity.coord.y) * tweenPercent)
                    + this.map.margin + 0.5) * App.TILE_SIZE;
-            this.paintProjectile(entity, midX, midY);
+            this.paintProjectile(entity, midX, midY, tweenPercent);
           });
           
           break;
         
         default:
+          break;
       }
       //--------------------------------
       
@@ -439,13 +456,31 @@ class App {
     }
   }
   
-  paintProjectile(entity, midX, midY) {
-    const radius = App.TILE_SIZE / 4;
+  paintProjectile(entity, midX, midY, tweenPercent = 0) {
+    if (!entity) return;
+    const exdata = this.entityExData[entity.id];
+    if (!exdata) return;
+    
+    let outerRadius = App.TILE_SIZE * 0.25;
+    (tweenPercent >= 0.1) && (outerRadius = App.TILE_SIZE * 0.23);
+    (tweenPercent >= 0.3) && (outerRadius = App.TILE_SIZE * 0.21);
+    (tweenPercent >= 0.5) && (outerRadius = App.TILE_SIZE * 0.23);
+    (tweenPercent >= 0.9) && (outerRadius = App.TILE_SIZE * 0.25);
+    
+    let innerRadius = App.TILE_SIZE * 0.15;
+    (tweenPercent >= 0.1) && (innerRadius = App.TILE_SIZE * 0.17);
+    (tweenPercent >= 0.3) && (innerRadius = App.TILE_SIZE * 0.19);
+    (tweenPercent >= 0.5) && (innerRadius = App.TILE_SIZE * 0.17);
+    (tweenPercent >= 0.9) && (innerRadius = App.TILE_SIZE * 0.15);
+    
     this.c2d.beginPath();
-    this.c2d.arc(midX, midY, radius, 0, 2 * Math.PI);
-    this.c2d.fillStyle = (this.entityExData[entity.id])
-      ? this.entityExData[entity.id].colour
-      : App.STYLES.UNKNOWN;
+    this.c2d.arc(midX, midY, outerRadius, 0, 2 * Math.PI);
+    this.c2d.fillStyle = exdata.colour;
+    this.c2d.fill();
+    
+    this.c2d.beginPath();
+    this.c2d.arc(midX, midY, innerRadius, 0, 2 * Math.PI);
+    this.c2d.fillStyle = App.STYLES.VFX.PROJECTILE_INNER_COLOUR;
     this.c2d.fill();
   }
   
@@ -526,23 +561,6 @@ class App {
     }
     //--------------------------------
   }
-  
-  registerEntity(entityId) {
-    if (!this.entityExData[entityId]) {
-      this.entityExData[entityId] = {
-        colour: App.STYLES.ENTITIES.COLOURS[Object.values(this.entityExData).length],
-        imageAsset: this.assets.images.actors[0],
-        spriteTileSize: 32,
-        spriteOffset: {
-          x: 0,
-          y: -4,
-        },
-        displayedX: -10 * App.TILE_SIZE,  //Hide the entity off-screen until the it's established by its firt paintEntity().
-        displayedY: -10 * App.TILE_SIZE,
-        displayedHealth: App.MAX_ENTITY_HEALTH,
-      };
-    }
-  }
   /*
   ----------------------------------------------------------------
    */
@@ -583,6 +601,9 @@ App.STYLES = {
     ],
     SPAWN_LINEWIDTH: 2,
     DEAD_COLOUR: '#ccc',
+  },
+  VFX: {
+    PROJECTILE_INNER_COLOUR: '#fff',
   },
   WIDGET: {
     HEALTH_BAR: {
