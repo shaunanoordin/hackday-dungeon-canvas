@@ -3,7 +3,11 @@ Hack Day Dungeon (Visualiser)
 -----------------------------
 
 (Shaun A. Noordin | shaunanoordin.com | 20180724)
+--------------------------------------------------------------------------------
  */
+
+import { ImageAsset } from "./utility.js";
+
 
 /*  Primary App Class
  */
@@ -36,6 +40,14 @@ class App {
       margin: 1,
     };
     
+    this.assets = {
+      images: {
+        actors: [
+          new ImageAsset("assets/avo-sprites-2018-08-actor-32-robot.png"),
+        ],
+      },
+    };
+    
     this.entities = {};
     this.entityExData = {};  //Extra data for each entity. We keep track of this
       //extra data because Marten's hackday engine doesn't provide information
@@ -43,15 +55,18 @@ class App {
       //facing direction - things that don't affect the game, but are important
       //for visual representation.)
     
+    this.state = App.STATES.LOADING;
     this.initialiseCanvas();
-    this.updateUI_console();
+    this.updateUI();
     
-    //Convenience: after a short delay, focus on the Start/Stop button.
-    this.html.consoleActionStart
+    //Prepare the loading message
+    this.runCycle = setInterval(this.runLoadingCheck.bind(this), App.TICKS_PER_SECOND);
+    
+    
+    /*this.html.consoleActionStart
     && setTimeout(() => {
-      this.html.consoleActionStart.click();
-      this.html.consoleActionStart.focus();
-    }, 500);
+      
+    }, 500);*/
   }
   /*
   ----------------------------------------------------------------
@@ -68,23 +83,35 @@ class App {
     
     this.processConsoleIn();
     this.runCycle && clearInterval(this.runCycle);
-    this.runCycle = setInterval(this.runStep.bind(this), 1000 / App.TICKS_PER_SECOND);
-    this.updateUI_console();
+    this.runCycle = setInterval(this.runGameStep.bind(this), 1000 / App.TICKS_PER_SECOND);
+    this.updateUI();
   }
   
   stop() {
     this.runCycle && clearInterval(this.runCycle);
-    this.runCycle = undefined;
-    this.updateUI_console();
+    this.runCycle = null;
+    this.updateUI();
   }
   
-  updateUI_console() {
-    if (!this.runCycle) {
-      this.html.consoleActionStart.textContent = "START";
-      this.html.consoleIn.disabled = false;
-    } else {
-      this.html.consoleActionStart.textContent = "STOP";
+  updateUI() {
+    if (this.state === App.STATES.LOADING) {
+      this.html.consoleOut.textContent = "LOADING...\r\n";
+      this.html.consoleActionStart.textContent = "-";
+      this.html.consoleActionStart.disabled = true;
       this.html.consoleIn.disabled = true;
+      
+    } else if (this.state === App.STATES.READY) {
+      
+      this.html.consoleOut.textContent = "";
+      this.html.consoleActionStart.disabled = false;
+      if (!this.runCycle) {
+        this.html.consoleActionStart.textContent = "START";
+        this.html.consoleIn.disabled = false;
+      } else {
+        this.html.consoleActionStart.textContent = "STOP";
+        this.html.consoleIn.disabled = true;
+      }
+      
     }
   }
   
@@ -123,8 +150,34 @@ class App {
   /*
   Game Logic
   ----------------------------------------------------------------
-   */  
-  runStep() {
+   */
+  runLoadingCheck() {
+    let assetsRequired = 0;
+    let assetsLoaded = 0;
+    
+    //Check if each asset is loaded.
+    if (this.assets && this.assets.images && this.assets.images.actors) {
+      Object.values(this.assets.images.actors).forEach(asset => {
+        assetsRequired++;
+        asset.loaded && assetsLoaded++;
+      });
+    }
+    
+    //All assets loaded?
+    if (assetsLoaded >= assetsRequired) {
+      //Change state: READY!
+      this.state = App.STATES.READY;
+      clearInterval(this.runCycle);
+      this.runCycle = null;
+      this.updateUI();
+      
+      //Convenience: focus on the Start/Stop button, and kick things off.
+      this.html.consoleActionStart.click();
+      this.html.consoleActionStart.focus();
+    }
+  }
+  
+  runGameStep() {
     //Get the current round.
     const round = this.rounds[this.currentRound];
     if (!round) { this.stop(); return; }  //If we're out of rounds, the game is over.
@@ -463,6 +516,10 @@ class App {
 /*  Constants
  */
 //==============================================================================
+App.STATES = {
+  LOADING: 'loading',
+  READY: 'ready',
+};
 App.TILE_SIZE = 32;  //Each tile is 32x32 pixels
 App.TICKS_PER_SECOND = 60;
 App.TICKS_PER_EVENT = 30;
