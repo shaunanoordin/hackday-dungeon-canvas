@@ -3,7 +3,11 @@ Hack Day Dungeon (Visualiser)
 -----------------------------
 
 (Shaun A. Noordin | shaunanoordin.com | 20180724)
+--------------------------------------------------------------------------------
  */
+
+import { ImageAsset } from "./utility.js";
+
 
 /*  Primary App Class
  */
@@ -36,6 +40,14 @@ class App {
       margin: 1,
     };
     
+    this.assets = {
+      images: {
+        actors: [
+          new ImageAsset("assets/avo-sprites-2018-08-actor-32-robot.png"),
+        ],
+      },
+    };
+    
     this.entities = {};
     this.entityExData = {};  //Extra data for each entity. We keep track of this
       //extra data because Marten's hackday engine doesn't provide information
@@ -43,15 +55,18 @@ class App {
       //facing direction - things that don't affect the game, but are important
       //for visual representation.)
     
+    this.state = App.STATES.LOADING;
     this.initialiseCanvas();
-    this.updateUI_console();
+    this.updateUI();
     
-    //Convenience: after a short delay, focus on the Start/Stop button.
-    this.html.consoleActionStart
+    //Prepare the loading message
+    this.runCycle = setInterval(this.runLoadingCheck.bind(this), App.TICKS_PER_SECOND);
+    
+    
+    /*this.html.consoleActionStart
     && setTimeout(() => {
-      this.html.consoleActionStart.click();
-      this.html.consoleActionStart.focus();
-    }, 500);
+      
+    }, 500);*/
   }
   /*
   ----------------------------------------------------------------
@@ -68,23 +83,35 @@ class App {
     
     this.processConsoleIn();
     this.runCycle && clearInterval(this.runCycle);
-    this.runCycle = setInterval(this.runStep.bind(this), 1000 / App.TICKS_PER_SECOND);
-    this.updateUI_console();
+    this.runCycle = setInterval(this.runGameStep.bind(this), 1000 / App.TICKS_PER_SECOND);
+    this.updateUI();
   }
   
   stop() {
     this.runCycle && clearInterval(this.runCycle);
-    this.runCycle = undefined;
-    this.updateUI_console();
+    this.runCycle = null;
+    this.updateUI();
   }
   
-  updateUI_console() {
-    if (!this.runCycle) {
-      this.html.consoleActionStart.textContent = "START";
-      this.html.consoleIn.disabled = false;
-    } else {
-      this.html.consoleActionStart.textContent = "STOP";
+  updateUI() {
+    if (this.state === App.STATES.LOADING) {
+      this.html.consoleOut.textContent = "LOADING...\r\n";
+      this.html.consoleActionStart.textContent = "-";
+      this.html.consoleActionStart.disabled = true;
       this.html.consoleIn.disabled = true;
+      
+    } else if (this.state === App.STATES.READY) {
+      
+      this.html.consoleOut.textContent = "";
+      this.html.consoleActionStart.disabled = false;
+      if (!this.runCycle) {
+        this.html.consoleActionStart.textContent = "START";
+        this.html.consoleIn.disabled = false;
+      } else {
+        this.html.consoleActionStart.textContent = "STOP";
+        this.html.consoleIn.disabled = true;
+      }
+      
     }
   }
   
@@ -123,8 +150,34 @@ class App {
   /*
   Game Logic
   ----------------------------------------------------------------
-   */  
-  runStep() {
+   */
+  runLoadingCheck() {
+    let assetsRequired = 0;
+    let assetsLoaded = 0;
+    
+    //Check if each asset is loaded.
+    if (this.assets && this.assets.images && this.assets.images.actors) {
+      Object.values(this.assets.images.actors).forEach(asset => {
+        assetsRequired++;
+        asset.loaded && assetsLoaded++;
+      });
+    }
+    
+    //All assets loaded?
+    if (assetsLoaded >= assetsRequired) {
+      //Change state: READY!
+      this.state = App.STATES.READY;
+      clearInterval(this.runCycle);
+      this.runCycle = null;
+      this.updateUI();
+      
+      //Convenience: focus on the Start/Stop button, and kick things off.
+      this.html.consoleActionStart.click();
+      this.html.consoleActionStart.focus();
+    }
+  }
+  
+  runGameStep() {
     //Get the current round.
     const round = this.rounds[this.currentRound];
     if (!round) { this.stop(); return; }  //If we're out of rounds, the game is over.
@@ -195,6 +248,23 @@ class App {
     this.entities = {};
     this.entityExData = {};
   }
+  
+  registerEntity(entityId) {
+    if (!this.entityExData[entityId]) {
+      this.entityExData[entityId] = {
+        colour: App.STYLES.ENTITIES.COLOURS[Object.values(this.entityExData).length],
+        direction: App.DIRECTIONS.SOUTH,
+        imageAsset: this.assets.images.actors[0],
+        spriteTileSize: 32,
+        spriteOffset: {
+          x: 0,
+          y: -4,
+        },
+        displayedX: -10 * App.TILE_SIZE,  //Hide the entity off-screen until the it's established by its firt paintEntity().
+        displayedY: -10 * App.TILE_SIZE,
+      };
+    }
+  }
   /*
   ----------------------------------------------------------------
    */
@@ -228,12 +298,18 @@ class App {
     
     //For each entity, draw the character.
     //--------------------------------
-    Object.values(this.entities).forEach(entity => {
+    const orderedEntities = Object.values(this.entities).sort((entityA, entityB) => {
+      const yA = (entityA.coord && entityA.coord.y) ? entityA.coord.y : 0;
+      const yB = (entityB.coord && entityB.coord.y) ? entityB.coord.y : 0;
+      return yA - yB;
+    });
+    
+    orderedEntities.forEach(entity => {
       //If an entity will be animated later (e.g. in an event), don't draw them
       //at this stage.
       const willEntityBeAnimatedLater = event
         && event.entity === entity.id
-        && (event.type === "spawn" || event.type === "move" || event.type === "death");
+        && (event.type === "spawn" || event.type === "move" || event.type === "death" || event.type === "ranged");
       if (willEntityBeAnimatedLater) return;
       
       const midX = (entity.coord.x + this.map.margin + 0.5) * App.TILE_SIZE;
@@ -298,28 +374,36 @@ class App {
         case "move":
           if (!entity) break;
           
+          //TODO: Guess the direction the entity is moving and record it in the exdata.
+          
           midX = ((event.from.x + (event.to.x - event.from.x) * tweenPercent)
                  + this.map.margin + 0.5) * App.TILE_SIZE;
           midY = ((event.from.y + (event.to.y - event.from.y) * tweenPercent)
                  + this.map.margin + 0.5) * App.TILE_SIZE;
-          this.paintEntity(entity, midX, midY, "moving");
+          this.paintEntity(entity, midX, midY, "moving", tweenPercent);
           
           break;
         
         case "ranged":
           if (!entity) break;
+          midX = (entity.coord.x + this.map.margin + 0.5) * App.TILE_SIZE;
+          midY = (entity.coord.y + this.map.margin + 0.5) * App.TILE_SIZE;
+          this.paintEntity(entity, midX, midY, "shooting", tweenPercent);
+          
+          //TODO: Guess the direction the entity is shooting and record it in the exdata.
           
           event.coords.forEach(projectile => {
             midX = ((entity.coord.x + (projectile.x - entity.coord.x) * tweenPercent)
                    + this.map.margin + 0.5) * App.TILE_SIZE;
             midY = ((entity.coord.y + (projectile.y - entity.coord.y) * tweenPercent)
                    + this.map.margin + 0.5) * App.TILE_SIZE;
-            this.paintProjectile(entity, midX, midY);
+            this.paintProjectile(entity, midX, midY, tweenPercent);
           });
           
           break;
         
         default:
+          break;
       }
       //--------------------------------
       
@@ -332,22 +416,67 @@ class App {
     }
   }
   
-  paintEntity(entity, midX, midY, action) {
-    const radius = App.TILE_SIZE / 2;
+  paintEntity(entity, midX, midY, action = "idle", tweenPercent = 0) {
+    if (!entity) return;
+    const exdata = this.entityExData[entity.id];
+    if (!exdata) return;
+    
+    const radius = App.TILE_SIZE * 0.5;
     this.c2d.beginPath();
     this.c2d.arc(midX, midY, radius, 0, 2 * Math.PI);
-    
-    if (action === "idle" || action === "moving") {
-      this.c2d.fillStyle = (this.entityExData[entity.id])
-        ? this.entityExData[entity.id].colour
-        : App.STYLES.UNKNOWN;
+
+    //Paint the coloured "shadow"
+    if (action === "idle" || action === "moving" || action === "shooting") {
+      this.c2d.fillStyle = exdata.colour;
     } else if (action === "dead") {
       this.c2d.fillStyle = App.STYLES.ENTITIES.DEAD_COLOUR;
     } else {
       this.c2d.fillStyle = App.STYLES.UNKNOWN;
     }
-    
     this.c2d.fill();
+    
+    //DEBUG: Paint an additional direction arrow.
+    this.c2d.beginPath()
+    this.c2d.moveTo(midX, midY);
+    switch (exdata.direction) {
+      case App.DIRECTIONS.EAST:
+        this.c2d.lineTo(midX + radius, midY);
+        break;
+      case App.DIRECTIONS.SOUTH:
+        this.c2d.lineTo(midX, midY + radius);
+        break;
+      case App.DIRECTIONS.WEST:
+        this.c2d.lineTo(midX - radius, midY);
+        break;
+      case App.DIRECTIONS.NORTH:
+        this.c2d.lineTo(midX, midY - radius);
+        break;
+    }
+    this.c2d.lineWidth = App.STYLES.VFX.ENTITY_ARROW_SIZE;
+    this.c2d.strokeStyle = App.STYLES.VFX.ENTITY_ARROW_COLOUR;
+    this.c2d.stroke();
+    
+    //Paint the sprite
+    if (entity.health > 0) {
+      let sx = 0 * exdata.spriteTileSize;  //TODO: perform direction check.
+      let sy = 0;
+      if (action === "moving") {  //Animation script: moving/running
+        sy = 1 * exdata.spriteTileSize;
+        (tweenPercent >= 0.1) && (sy = 2 * exdata.spriteTileSize);
+        (tweenPercent >= 0.4) && (sy = 1 * exdata.spriteTileSize);
+        (tweenPercent >= 0.6) && (sy = 3 * exdata.spriteTileSize);
+        (tweenPercent >= 0.9) && (sy = 1 * exdata.spriteTileSize);
+      }
+      const sw = exdata.spriteTileSize, sh = exdata.spriteTileSize;
+      const dx = Math.floor(midX - sw / 2) + exdata.spriteOffset.x;
+      const dy = Math.floor(midY - sh / 2) + exdata.spriteOffset.y;
+      const dw = App.TILE_SIZE, dh = App.TILE_SIZE;
+      this.c2d.drawImage(
+        exdata.imageAsset.img,
+        sx, sy, sw, sh,
+        dx, dy, dw, dh
+      );
+    }
     
     //Update the entity's extra data.
     if (this.entityExData[entity.id]) {
@@ -356,13 +485,31 @@ class App {
     }
   }
   
-  paintProjectile(entity, midX, midY) {
-    const radius = App.TILE_SIZE / 4;
+  paintProjectile(entity, midX, midY, tweenPercent = 0) {
+    if (!entity) return;
+    const exdata = this.entityExData[entity.id];
+    if (!exdata) return;
+    
+    let outerRadius = App.TILE_SIZE * 0.25;
+    (tweenPercent >= 0.1) && (outerRadius = App.TILE_SIZE * 0.23);
+    (tweenPercent >= 0.3) && (outerRadius = App.TILE_SIZE * 0.21);
+    (tweenPercent >= 0.5) && (outerRadius = App.TILE_SIZE * 0.23);
+    (tweenPercent >= 0.9) && (outerRadius = App.TILE_SIZE * 0.25);
+    
+    let innerRadius = App.TILE_SIZE * 0.15;
+    (tweenPercent >= 0.1) && (innerRadius = App.TILE_SIZE * 0.17);
+    (tweenPercent >= 0.3) && (innerRadius = App.TILE_SIZE * 0.19);
+    (tweenPercent >= 0.5) && (innerRadius = App.TILE_SIZE * 0.17);
+    (tweenPercent >= 0.9) && (innerRadius = App.TILE_SIZE * 0.15);
+    
     this.c2d.beginPath();
-    this.c2d.arc(midX, midY, radius, 0, 2 * Math.PI);
-    this.c2d.fillStyle = (this.entityExData[entity.id])
-      ? this.entityExData[entity.id].colour
-      : App.STYLES.UNKNOWN;
+    this.c2d.arc(midX, midY, outerRadius, 0, 2 * Math.PI);
+    this.c2d.fillStyle = exdata.colour;
+    this.c2d.fill();
+    
+    this.c2d.beginPath();
+    this.c2d.arc(midX, midY, innerRadius, 0, 2 * Math.PI);
+    this.c2d.fillStyle = App.STYLES.VFX.PROJECTILE_INNER_COLOUR;
     this.c2d.fill();
   }
   
@@ -443,17 +590,6 @@ class App {
     }
     //--------------------------------
   }
-  
-  registerEntity(entityId) {
-    if (!this.entityExData[entityId]) {
-      this.entityExData[entityId] = {
-        colour: App.STYLES.ENTITIES.COLOURS[Object.values(this.entityExData).length],
-        displayedX: -10 * App.TILE_SIZE,  //Hide the entity off-screen until the it's established by its firt paintEntity().
-        displayedY: -10 * App.TILE_SIZE,
-        displayedHealth: App.MAX_ENTITY_HEALTH,
-      };
-    }
-  }
   /*
   ----------------------------------------------------------------
    */
@@ -463,11 +599,21 @@ class App {
 /*  Constants
  */
 //==============================================================================
+App.STATES = {
+  LOADING: 'loading',
+  READY: 'ready',
+};
 App.TILE_SIZE = 32;  //Each tile is 32x32 pixels
 App.TICKS_PER_SECOND = 60;
 App.TICKS_PER_EVENT = 30;
 App.MAX_ENTITY_HEALTH = 100;
 App.DISPLAYED_HEALTH_CHANGE_RATE = 10;
+App.DIRECTIONS = {
+  EAST: 0,
+  SOUTH: 1,
+  WEST: 2,
+  NORTH: 3,
+};
 
 App.STYLES = {
   GRID: {
@@ -484,6 +630,11 @@ App.STYLES = {
     ],
     SPAWN_LINEWIDTH: 2,
     DEAD_COLOUR: '#ccc',
+  },
+  VFX: {
+    PROJECTILE_INNER_COLOUR: '#fff',
+    ENTITY_ARROW_SIZE: 4,
+    ENTITY_ARROW_COLOUR: '#fff',
   },
   WIDGET: {
     HEALTH_BAR: {
