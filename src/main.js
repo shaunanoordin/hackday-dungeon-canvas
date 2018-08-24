@@ -375,7 +375,7 @@ class App {
     this.c2d.beginPath();
     this.c2d.rect(
       exdata.displayedX - App.STYLES.WIDGET.HEALTH_BAR.BODY_WIDTH / 2,
-      exdata.displayedY + App.TILE_SIZE/2,
+      exdata.displayedY + App.TILE_SIZE / 2,
       App.STYLES.WIDGET.HEALTH_BAR.BODY_WIDTH,
       App.STYLES.WIDGET.HEALTH_BAR.BODY_HEIGHT
     );
@@ -387,7 +387,7 @@ class App {
     this.c2d.beginPath();
     this.c2d.rect(
       exdata.displayedX - healthBar / 2,
-      exdata.displayedY + App.TILE_SIZE/2,
+      exdata.displayedY + App.TILE_SIZE / 2,
       healthBar,
       App.STYLES.WIDGET.HEALTH_BAR.BODY_HEIGHT
     );
@@ -405,6 +405,22 @@ class App {
       App.STYLES.WIDGET.HEALTH_BAR.BODY_HEIGHT
     );
     this.c2d.lineWidth = App.STYLES.WIDGET.HEALTH_BAR.FRAME_SIZE;
+    this.c2d.strokeStyle = App.STYLES.WIDGET.HEALTH_BAR.FRAME_COLOUR;
+    this.c2d.stroke();
+    
+    //Draw the health bar text, centred below the actual health bar
+    this.c2d.fillStyle = (this.entityExData[entity.id])
+      ? this.entityExData[entity.id].colour
+      : App.STYLES.UNKNOWN;
+    this.c2d.font = App.STYLES.WIDGET.HEALTH_BAR.FONT;
+    this.c2d.textAlign = "center";
+    this.c2d.textBaseline = "hanging";
+    this.c2d.fillText(
+      entity.health,
+      exdata.displayedX,
+      exdata.displayedY + App.TILE_SIZE / 2 + App.STYLES.WIDGET.HEALTH_BAR.BODY_HEIGHT + 2 * App.STYLES.WIDGET.HEALTH_BAR.FRAME_SIZE
+    );
+    this.c2d.lineWidth = App.STYLES.WIDGET.HEALTH_BAR.FRAME_SIZE;  //Text outline
     this.c2d.strokeStyle = App.STYLES.WIDGET.HEALTH_BAR.FRAME_COLOUR;
     this.c2d.stroke();
   }
@@ -452,6 +468,7 @@ App.STYLES = {
   },
   WIDGET: {
     HEALTH_BAR: {
+      FONT: '8px Arial',
       FRAME_COLOUR: '#fff',
       FRAME_SIZE: 1,
       BODY_COLOUR: '#333',
