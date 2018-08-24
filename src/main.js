@@ -281,7 +281,13 @@ class App {
     
     //For each entity, draw the character.
     //--------------------------------
-    Object.values(this.entities).forEach(entity => {
+    const orderedEntities = Object.values(this.entities).sort((entityA, entityB) => {
+      const yA = (entityA.coord && entityA.coord.y) ? entityA.coord.y : 0;
+      const yB = (entityB.coord && entityB.coord.y) ? entityB.coord.y : 0;
+      return yA - yB;
+    });
+    
+    orderedEntities.forEach(entity => {
       //If an entity will be animated later (e.g. in an event), don't draw them
       //at this stage.
       const willEntityBeAnimatedLater = event
@@ -385,22 +391,39 @@ class App {
     }
   }
   
-  paintEntity(entity, midX, midY, action) {
+  paintEntity(entity, midX, midY, action = "idle") {
+    if (!entity) return;
+    const exdata = this.entityExData[entity.id];
+    if (!exdata) return;
+    
     const radius = App.TILE_SIZE / 2;
     this.c2d.beginPath();
     this.c2d.arc(midX, midY, radius, 0, 2 * Math.PI);
-    
+
+    //Paint the coloured "shadow"
     if (action === "idle" || action === "moving") {
-      this.c2d.fillStyle = (this.entityExData[entity.id])
-        ? this.entityExData[entity.id].colour
-        : App.STYLES.UNKNOWN;
+      this.c2d.fillStyle = exdata.colour;
     } else if (action === "dead") {
       this.c2d.fillStyle = App.STYLES.ENTITIES.DEAD_COLOUR;
     } else {
       this.c2d.fillStyle = App.STYLES.UNKNOWN;
     }
-    
     this.c2d.fill();
+    
+    //Paint the sprite
+    if (entity.health > 0) {
+      const VERTICAL_OFFSET = -4;
+      const sx = 0, sy = 0;  //TODO
+      const sw = App.TILE_SIZE, sh = App.TILE_SIZE;
+      const dx = Math.floor(midX - sw / 2);
+      const dy = Math.floor(midY - sh / 2) + VERTICAL_OFFSET;
+      const dw = App.TILE_SIZE, dh = App.TILE_SIZE;
+      this.c2d.drawImage(
+        exdata.imageAsset.img,
+        sx, sy, sw, sh,
+        dx, dy, dw, dh
+      );
+    }
     
     //Update the entity's extra data.
     if (this.entityExData[entity.id]) {
@@ -501,6 +524,7 @@ class App {
     if (!this.entityExData[entityId]) {
       this.entityExData[entityId] = {
         colour: App.STYLES.ENTITIES.COLOURS[Object.values(this.entityExData).length],
+        imageAsset: this.assets.images.actors[0],
         displayedX: -10 * App.TILE_SIZE,  //Hide the entity off-screen until the it's established by its firt paintEntity().
         displayedY: -10 * App.TILE_SIZE,
         displayedHealth: App.MAX_ENTITY_HEALTH,
