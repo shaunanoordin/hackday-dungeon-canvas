@@ -361,7 +361,7 @@ class App {
                  + this.map.margin + 0.5) * App.TILE_SIZE;
           midY = ((event.from.y + (event.to.y - event.from.y) * tweenPercent)
                  + this.map.margin + 0.5) * App.TILE_SIZE;
-          this.paintEntity(entity, midX, midY, "moving");
+          this.paintEntity(entity, midX, midY, "moving", tweenPercent);
           
           break;
         
@@ -391,7 +391,7 @@ class App {
     }
   }
   
-  paintEntity(entity, midX, midY, action = "idle") {
+  paintEntity(entity, midX, midY, action = "idle", tweenPercent = 0) {
     if (!entity) return;
     const exdata = this.entityExData[entity.id];
     if (!exdata) return;
@@ -412,11 +412,18 @@ class App {
     
     //Paint the sprite
     if (entity.health > 0) {
-      const VERTICAL_OFFSET = -4;
-      const sx = 0, sy = 0;  //TODO
-      const sw = App.TILE_SIZE, sh = App.TILE_SIZE;
-      const dx = Math.floor(midX - sw / 2);
-      const dy = Math.floor(midY - sh / 2) + VERTICAL_OFFSET;
+      let sx = 0 * exdata.spriteTileSize;  //TODO: perform direction check.
+      let sy = 0;
+      if (action === "moving") {  //Animation script: moving/running
+        sy = 1 * exdata.spriteTileSize;
+        (tweenPercent >= 0.1) && (sy = 2 * exdata.spriteTileSize);
+        (tweenPercent >= 0.4) && (sy = 1 * exdata.spriteTileSize);
+        (tweenPercent >= 0.6) && (sy = 3 * exdata.spriteTileSize);
+        (tweenPercent >= 0.9) && (sy = 1 * exdata.spriteTileSize);
+      }
+      const sw = exdata.spriteTileSize, sh = exdata.spriteTileSize;
+      const dx = Math.floor(midX - sw / 2) + exdata.spriteOffset.x;
+      const dy = Math.floor(midY - sh / 2) + exdata.spriteOffset.y;
       const dw = App.TILE_SIZE, dh = App.TILE_SIZE;
       this.c2d.drawImage(
         exdata.imageAsset.img,
@@ -525,6 +532,11 @@ class App {
       this.entityExData[entityId] = {
         colour: App.STYLES.ENTITIES.COLOURS[Object.values(this.entityExData).length],
         imageAsset: this.assets.images.actors[0],
+        spriteTileSize: 32,
+        spriteOffset: {
+          x: 0,
+          y: -4,
+        },
         displayedX: -10 * App.TILE_SIZE,  //Hide the entity off-screen until the it's established by its firt paintEntity().
         displayedY: -10 * App.TILE_SIZE,
         displayedHealth: App.MAX_ENTITY_HEALTH,
@@ -549,6 +561,12 @@ App.TICKS_PER_SECOND = 60;
 App.TICKS_PER_EVENT = 30;
 App.MAX_ENTITY_HEALTH = 100;
 App.DISPLAYED_HEALTH_CHANGE_RATE = 10;
+App.DIRECTIONS = {
+  EAST: 0,
+  SOUTH: 1,
+  WEST: 2,
+  NORTH: 3,
+};
 
 App.STYLES = {
   GRID: {
