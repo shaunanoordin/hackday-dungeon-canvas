@@ -253,6 +253,7 @@ class App {
     if (!this.entityExData[entityId]) {
       this.entityExData[entityId] = {
         colour: App.STYLES.ENTITIES.COLOURS[Object.values(this.entityExData).length],
+        direction: App.DIRECTIONS.SOUTH,
         imageAsset: this.assets.images.actors[0],
         spriteTileSize: 32,
         spriteOffset: {
@@ -308,7 +309,7 @@ class App {
       //at this stage.
       const willEntityBeAnimatedLater = event
         && event.entity === entity.id
-        && (event.type === "spawn" || event.type === "move" || event.type === "death");
+        && (event.type === "spawn" || event.type === "move" || event.type === "death" || event.type === "ranged");
       if (willEntityBeAnimatedLater) return;
       
       const midX = (entity.coord.x + this.map.margin + 0.5) * App.TILE_SIZE;
@@ -373,6 +374,8 @@ class App {
         case "move":
           if (!entity) break;
           
+          //TODO: Guess the direction the entity is moving and record it in the exdata.
+          
           midX = ((event.from.x + (event.to.x - event.from.x) * tweenPercent)
                  + this.map.margin + 0.5) * App.TILE_SIZE;
           midY = ((event.from.y + (event.to.y - event.from.y) * tweenPercent)
@@ -383,6 +386,11 @@ class App {
         
         case "ranged":
           if (!entity) break;
+          midX = (entity.coord.x + this.map.margin + 0.5) * App.TILE_SIZE;
+          midY = (entity.coord.y + this.map.margin + 0.5) * App.TILE_SIZE;
+          this.paintEntity(entity, midX, midY, "shooting", tweenPercent);
+          
+          //TODO: Guess the direction the entity is shooting and record it in the exdata.
           
           event.coords.forEach(projectile => {
             midX = ((entity.coord.x + (projectile.x - entity.coord.x) * tweenPercent)
@@ -413,12 +421,12 @@ class App {
     const exdata = this.entityExData[entity.id];
     if (!exdata) return;
     
-    const radius = App.TILE_SIZE / 2;
+    const radius = App.TILE_SIZE * 0.5;
     this.c2d.beginPath();
     this.c2d.arc(midX, midY, radius, 0, 2 * Math.PI);
 
     //Paint the coloured "shadow"
-    if (action === "idle" || action === "moving") {
+    if (action === "idle" || action === "moving" || action === "shooting") {
       this.c2d.fillStyle = exdata.colour;
     } else if (action === "dead") {
       this.c2d.fillStyle = App.STYLES.ENTITIES.DEAD_COLOUR;
@@ -426,6 +434,27 @@ class App {
       this.c2d.fillStyle = App.STYLES.UNKNOWN;
     }
     this.c2d.fill();
+    
+    //DEBUG: Paint an additional direction arrow.
+    this.c2d.beginPath()
+    this.c2d.moveTo(midX, midY);
+    switch (exdata.direction) {
+      case App.DIRECTIONS.EAST:
+        this.c2d.lineTo(midX + radius, midY);
+        break;
+      case App.DIRECTIONS.SOUTH:
+        this.c2d.lineTo(midX, midY + radius);
+        break;
+      case App.DIRECTIONS.WEST:
+        this.c2d.lineTo(midX - radius, midY);
+        break;
+      case App.DIRECTIONS.NORTH:
+        this.c2d.lineTo(midX, midY - radius);
+        break;
+    }
+    this.c2d.lineWidth = App.STYLES.VFX.ENTITY_ARROW_SIZE;
+    this.c2d.strokeStyle = App.STYLES.VFX.ENTITY_ARROW_COLOUR;
+    this.c2d.stroke();
     
     //Paint the sprite
     if (entity.health > 0) {
@@ -604,6 +633,8 @@ App.STYLES = {
   },
   VFX: {
     PROJECTILE_INNER_COLOUR: '#fff',
+    ENTITY_ARROW_SIZE: 4,
+    ENTITY_ARROW_COLOUR: '#fff',
   },
   WIDGET: {
     HEALTH_BAR: {
