@@ -66,6 +66,8 @@ table th {
 }
 #app > main #container-canvas #canvas {
   flex: 0 0 auto;
+  background: #eec;
+  border-radius: 1em;
 }
 #app > main #console {
   background: #fff;

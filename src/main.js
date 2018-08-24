@@ -371,7 +371,10 @@ class App {
     const exdata = this.entityExData[entity.id];
     if (!exdata) return;
     
+    const health = entity.health;
+    
     //Draw the black body (which acts as the "empty" part of the health bar)
+    //--------------------------------
     this.c2d.beginPath();
     this.c2d.rect(
       exdata.displayedX - App.STYLES.WIDGET.HEALTH_BAR.BODY_WIDTH / 2,
@@ -381,9 +384,11 @@ class App {
     );
     this.c2d.fillStyle = App.STYLES.WIDGET.HEALTH_BAR.BODY_COLOUR;
     this.c2d.fill();
+    //--------------------------------
     
     //Draw the coloured bar (which acts as the "filled" part of the health bar)
-    const healthBar = Math.max(Math.min(entity.health / App.MAX_ENTITY_HEALTH, 100), 0) * App.STYLES.WIDGET.HEALTH_BAR.BODY_WIDTH;
+    //--------------------------------
+    const healthBar = Math.max(Math.min(health / App.MAX_ENTITY_HEALTH, 100), 0) * App.STYLES.WIDGET.HEALTH_BAR.BODY_WIDTH;
     this.c2d.beginPath();
     this.c2d.rect(
       exdata.displayedX - healthBar / 2,
@@ -395,8 +400,10 @@ class App {
       ? this.entityExData[entity.id].colour
       : App.STYLES.UNKNOWN;;
     this.c2d.fill();
+    //--------------------------------
     
     //Draw the surrounding frame
+    //--------------------------------
     this.c2d.beginPath();
     this.c2d.rect(
       exdata.displayedX - App.STYLES.WIDGET.HEALTH_BAR.BODY_WIDTH / 2,
@@ -407,22 +414,34 @@ class App {
     this.c2d.lineWidth = App.STYLES.WIDGET.HEALTH_BAR.FRAME_SIZE;
     this.c2d.strokeStyle = App.STYLES.WIDGET.HEALTH_BAR.FRAME_COLOUR;
     this.c2d.stroke();
+    //--------------------------------
     
     //Draw the health bar text, centred below the actual health bar
-    this.c2d.fillStyle = (this.entityExData[entity.id])
-      ? this.entityExData[entity.id].colour
-      : App.STYLES.UNKNOWN;
-    this.c2d.font = App.STYLES.WIDGET.HEALTH_BAR.FONT;
-    this.c2d.textAlign = "center";
-    this.c2d.textBaseline = "hanging";
-    this.c2d.fillText(
-      entity.health,
-      exdata.displayedX,
-      exdata.displayedY + App.TILE_SIZE / 2 + App.STYLES.WIDGET.HEALTH_BAR.BODY_HEIGHT + 2 * App.STYLES.WIDGET.HEALTH_BAR.FRAME_SIZE
-    );
-    this.c2d.lineWidth = App.STYLES.WIDGET.HEALTH_BAR.FRAME_SIZE;  //Text outline
-    this.c2d.strokeStyle = App.STYLES.WIDGET.HEALTH_BAR.FRAME_COLOUR;
-    this.c2d.stroke();
+    //--------------------------------
+    if (health > 0) {
+      this.c2d.font = App.STYLES.WIDGET.HEALTH_BAR.FONT;
+      this.c2d.textAlign = "center";
+      this.c2d.textBaseline = "hanging";
+      const textVerticalOffset = App.STYLES.WIDGET.HEALTH_BAR.BODY_HEIGHT + 2 * App.STYLES.WIDGET.HEALTH_BAR.FRAME_SIZE;
+      //----------------
+      this.c2d.lineWidth = App.STYLES.WIDGET.HEALTH_BAR.FRAME_SIZE * 2;  //Text outline
+      this.c2d.strokeStyle = App.STYLES.WIDGET.HEALTH_BAR.FRAME_COLOUR;
+      this.c2d.strokeText(
+        health,
+        exdata.displayedX,
+        exdata.displayedY + App.TILE_SIZE / 2 + textVerticalOffset
+      );
+      //----------------
+      this.c2d.fillStyle = (this.entityExData[entity.id])
+        ? this.entityExData[entity.id].colour
+        : App.STYLES.UNKNOWN;
+      this.c2d.fillText(
+        health,
+        exdata.displayedX,
+        exdata.displayedY + App.TILE_SIZE / 2 + textVerticalOffset
+      );
+    }
+    //--------------------------------
   }
   
   registerEntity(entityId) {
@@ -468,9 +487,9 @@ App.STYLES = {
   },
   WIDGET: {
     HEALTH_BAR: {
-      FONT: '8px Arial',
+      FONT: '8px Arial, sans-serif',
       FRAME_COLOUR: '#fff',
-      FRAME_SIZE: 1,
+      FRAME_SIZE: 2,
       BODY_COLOUR: '#333',
       BODY_WIDTH: 24,
       BODY_HEIGHT: 4,
