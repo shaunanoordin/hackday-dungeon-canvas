@@ -458,6 +458,7 @@ class App {
     this.c2d.fill();
     
     //DEBUG: Paint an additional direction arrow.
+    /*
     this.c2d.beginPath()
     this.c2d.moveTo(midX, midY);
     switch (exdata.direction) {
@@ -477,6 +478,7 @@ class App {
     this.c2d.lineWidth = App.STYLES.VFX.ENTITY_ARROW_SIZE;
     this.c2d.strokeStyle = App.STYLES.VFX.ENTITY_ARROW_COLOUR;
     this.c2d.stroke();
+    */
     
     //Paint the sprite
     if (entity.health > 0) {
