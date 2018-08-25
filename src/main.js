@@ -61,12 +61,6 @@ class App {
     
     //Prepare the loading message
     this.runCycle = setInterval(this.runLoadingCheck.bind(this), App.TICKS_PER_SECOND);
-    
-    
-    /*this.html.consoleActionStart
-    && setTimeout(() => {
-      
-    }, 500);*/
   }
   /*
   ----------------------------------------------------------------
@@ -265,6 +259,17 @@ class App {
       };
     }
   }
+  
+  guessEntityDirection(xDist, yDist) {
+    if (xDist !== 0 || yDist !== 0) {
+      const rotationDeg = Math.atan2(yDist, xDist) * 180 / Math.PI;
+      if (-45 <= rotationDeg && rotationDeg <= 45) return App.DIRECTIONS.EAST;
+      if (45 < rotationDeg && rotationDeg < 135) return App.DIRECTIONS.SOUTH;
+      if (135 <= rotationDeg || rotationDeg <= -135) return App.DIRECTIONS.WEST;
+      if (-135 < rotationDeg && rotationDeg < -45) return App.DIRECTIONS.NORTH;
+    }
+    return App.DIRECTIONS.SOUTH;  //Default direction
+  }
   /*
   ----------------------------------------------------------------
    */
@@ -328,7 +333,9 @@ class App {
     if (event) {
       let entityId = event.entity;
       let entity = this.entities[entityId];
+      let exdata = this.entityExData[entityId];
       let midX = 0, midY = 0;
+      let xDist, yDist;
       let radius = 1;
       let entityColour = App.STYLES.UNKNOWN;
       
@@ -374,12 +381,15 @@ class App {
         case "move":
           if (!entity) break;
           
-          //TODO: Guess the direction the entity is moving and record it in the exdata.
+          //Guess the direction the entity is moving and record it in the exdata.
+          xDist = event.to.x - event.from.x;
+          yDist = event.to.y - event.from.y;
+          exdata && (exdata.direction = this.guessEntityDirection(xDist, yDist));
           
-          midX = ((event.from.x + (event.to.x - event.from.x) * tweenPercent)
-                 + this.map.margin + 0.5) * App.TILE_SIZE;
-          midY = ((event.from.y + (event.to.y - event.from.y) * tweenPercent)
-                 + this.map.margin + 0.5) * App.TILE_SIZE;
+          midX = (event.from.x + xDist * tweenPercent + this.map.margin + 0.5)
+                 * App.TILE_SIZE;
+          midY = (event.from.y + yDist * tweenPercent + this.map.margin + 0.5)
+                 * App.TILE_SIZE;
           this.paintEntity(entity, midX, midY, "moving", tweenPercent);
           
           break;
@@ -388,10 +398,22 @@ class App {
           if (!entity) break;
           midX = (entity.coord.x + this.map.margin + 0.5) * App.TILE_SIZE;
           midY = (entity.coord.y + this.map.margin + 0.5) * App.TILE_SIZE;
+          
+          
+          //Guess the direction the entity is shooting and record it in the exdata.
+          xDist = 0; yDist = 0;
+          event.coords.forEach(projectile => {
+            xDist += projectile.x - entity.coord.x;
+            yDist += projectile.y - entity.coord.y;
+          });
+          xDist = (event.coords.length > 0) ? xDist / event.coords.length : 0;
+          yDist = (event.coords.length > 0) ? yDist / event.coords.length : 0;
+          exdata && (exdata.direction = this.guessEntityDirection(xDist, yDist));
+          
+          //Paint the entity doing the shooting.
           this.paintEntity(entity, midX, midY, "shooting", tweenPercent);
           
-          //TODO: Guess the direction the entity is shooting and record it in the exdata.
-          
+          //Paint each projectile.
           event.coords.forEach(projectile => {
             midX = ((entity.coord.x + (projectile.x - entity.coord.x) * tweenPercent)
                    + this.map.margin + 0.5) * App.TILE_SIZE;
@@ -458,7 +480,7 @@ class App {
     
     //Paint the sprite
     if (entity.health > 0) {
-      let sx = 0 * exdata.spriteTileSize;  //TODO: perform direction check.
+      let sx = exdata.direction * exdata.spriteTileSize;
       let sy = 0;
       if (action === "moving") {  //Animation script: moving/running
         sy = 1 * exdata.spriteTileSize;
