@@ -48,6 +48,8 @@ class App {
       },
       audio: {
         zap: new AudioAsset("assets/zap.wav"),
+        boing: new AudioAsset("assets/boing.wav"),
+        wompwomp: new AudioAsset("assets/wompwomp.wav"),
       }
     };
     
@@ -238,6 +240,14 @@ class App {
     if (this.currentTick === 0) {
       if (event) {
         switch (event.type) {
+          case "spawn":
+            this.assets.audio.boing.stop();
+            this.assets.audio.boing.play();
+            break;
+          case "death":
+            this.assets.audio.wompwomp.stop();
+            this.assets.audio.wompwomp.play();
+            break;
           case "ranged":
             this.assets.audio.zap.stop();
             this.assets.audio.zap.play();
