@@ -44,6 +44,13 @@ export function AudioAsset(url) {
   
   //Interface functions
   this.play = function() {
-    this.loaded && this.audio && this.audio.play();
+    if (!this.loaded || !this.audio) return;
+    this.audio.play();
+  }.bind(this);
+  
+  this.stop = function() {
+    if (!this.loaded || !this.audio) return;
+    this.audio.currentTime = 0;
+    this.audio.pause();
   }.bind(this);
 }

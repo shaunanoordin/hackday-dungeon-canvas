@@ -234,12 +234,12 @@ class App {
     //PAINT PAINT PAINT!
     this.paint(round, round.events[this.currentRoundEvent]);
     
-    //Play sound
+    //Play sounds
     if (this.currentTick === 0) {
       if (event) {
         switch (event.type) {
           case "ranged":
-            console.log('+++');
+            this.assets.audio.zap.stop();
             this.assets.audio.zap.play();
             break;
         }
