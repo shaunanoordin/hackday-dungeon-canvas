@@ -6,7 +6,7 @@ Hack Day Dungeon (Visualiser)
 --------------------------------------------------------------------------------
  */
 
-import { ImageAsset } from "./utility.js";
+import { ImageAsset, AudioAsset } from "./utility.js";
 
 
 /*  Primary App Class
@@ -46,6 +46,11 @@ class App {
           new ImageAsset("assets/avo-sprites-2018-08-actor-32-robot.png"),
         ],
       },
+      audio: {
+        zap: new AudioAsset("assets/zap.wav"),
+        boing: new AudioAsset("assets/boing.wav"),
+        wompwomp: new AudioAsset("assets/wompwomp.wav"),
+      }
     };
     
     this.entities = {};
@@ -150,11 +155,20 @@ class App {
     let assetsLoaded = 0;
     
     //Check if each asset is loaded.
-    if (this.assets && this.assets.images && this.assets.images.actors) {
-      Object.values(this.assets.images.actors).forEach(asset => {
-        assetsRequired++;
-        asset.loaded && assetsLoaded++;
-      });
+    if (this.assets) {
+      if (this.assets.images && this.assets.images.actors) {
+        Object.values(this.assets.images.actors).forEach(asset => {
+          assetsRequired++;
+          asset.loaded && assetsLoaded++;
+        });
+      }
+      
+      if (this.assets.audio) {
+        Object.values(this.assets.audio).forEach(asset => {
+          assetsRequired++;
+          asset.loaded && assetsLoaded++;
+        });
+      }
     }
     
     //All assets loaded?
@@ -221,6 +235,26 @@ class App {
     
     //PAINT PAINT PAINT!
     this.paint(round, round.events[this.currentRoundEvent]);
+    
+    //Play sounds
+    if (this.currentTick === 0) {
+      if (event) {
+        switch (event.type) {
+          case "spawn":
+            this.assets.audio.boing.stop();
+            this.assets.audio.boing.play();
+            break;
+          case "death":
+            this.assets.audio.wompwomp.stop();
+            this.assets.audio.wompwomp.play();
+            break;
+          case "ranged":
+            this.assets.audio.zap.stop();
+            this.assets.audio.zap.play();
+            break;
+        }
+      }
+    }
     
     //Take the next step
     this.currentTick++;
