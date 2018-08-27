@@ -17,8 +17,6 @@ export function ImageAsset(url) {
 }
 
 export function AudioAsset(url) {
-  console.log('New Audio: ', url);
-  
   this.url = url;
   this.loaded = false;
   this.audio = new Audio();

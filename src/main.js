@@ -163,12 +163,13 @@ class App {
         });
       }
       
-      if (this.assets.audio) {
-        Object.values(this.assets.audio).forEach(asset => {
-          assetsRequired++;
-          asset.loaded && assetsLoaded++;
-        });
-      }
+      //Actually, let's treat audio as optional.
+      //  if (this.assets.audio) {
+      //    Object.values(this.assets.audio).forEach(asset => {
+      //      assetsRequired++;
+      //      asset.loaded && assetsLoaded++;
+      //    });
+      //  }
     }
     
     //All assets loaded?
